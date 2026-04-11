@@ -32,7 +32,33 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
     }, 3000)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    try {
+      const sessionRes = await fetch("http://localhost:5000/api/consent/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_name: "User",
+          document_summary: data.simplifiedPoints.join(". ")
+        })
+      })
+      const { session_id } = await sessionRes.json()
+      await fetch(`http://localhost:5000/api/consent/session/${session_id}/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          consent_checks: {
+            readUnderstood: consent1,
+            financialCommitment: consent2,
+            risksAcknowledged: consent3
+          },
+          voice_confirmed: voiceConfirmed,
+          quiz_passed: quizPassed
+        })
+      })
+    } catch (e) {
+      console.error("Consent error:", e)
+    }
     setIsSubmitted(true)
   }
 

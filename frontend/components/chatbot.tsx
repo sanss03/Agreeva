@@ -94,15 +94,41 @@ export function Chatbot() {
     setInput("")
     setIsTyping(true)
 
-    // Simulate AI response delay
-    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 1000))
-
-    const response = getResponse(messageText)
-    
+    let reply = getResponse(messageText)
+    try {
+      let sessionId = localStorage.getItem("chat_session_id")
+      if (!sessionId) {
+        const sessionRes = await fetch("http://localhost:5000/api/chat/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        })
+        const sessionData = await sessionRes.json()
+        sessionId = sessionData.session_id
+        if (sessionId) {
+          localStorage.setItem("chat_session_id", sessionId)
+        }
+      }
+      const res = await fetch("http://localhost:5000/api/chat/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session_id: sessionId,
+          message: messageText,
+          document_context: "Financial loan agreement assistant"
+        })
+      })
+      if (res.ok) {
+        const data = await res.json()
+        reply = data.reply
+      }
+    } catch (err) {
+      console.error("Chat error:", err)
+    }
     const assistantMessage: Message = {
       id: (Date.now() + 1).toString(),
       role: "assistant",
-      content: response,
+      content: reply,
       timestamp: new Date(),
     }
 
