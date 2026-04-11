@@ -3,6 +3,8 @@
 import { Shield, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { usePathname, useRouter } from "@/i18n/routing"
+import { useLocale } from "next-intl"
 
 interface HeaderProps {
   children?: React.ReactNode
@@ -10,6 +12,13 @@ interface HeaderProps {
 
 export function Header({ children }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const router = useRouter()
+  const pathname = usePathname()
+  const locale = useLocale()
+
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    router.replace(pathname, { locale: e.target.value })
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/40">
@@ -39,11 +48,12 @@ export function Header({ children }: HeaderProps) {
           {children}
           <select 
             className="bg-background border border-border text-foreground text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer hover:bg-muted/50 transition-colors"
-            defaultValue="English"
+            value={locale}
+            onChange={handleLanguageChange}
           >
-            <option value="English">English</option>
-            <option value="Hindi">Hindi</option>
-            <option value="Marathi">Marathi</option>
+            <option value="en">English</option>
+            <option value="hi">Hindi</option>
+            <option value="mr">Marathi</option>
           </select>
         </div>
 
@@ -65,11 +75,12 @@ export function Header({ children }: HeaderProps) {
             <div className="flex items-center justify-end w-full">
               <select 
                 className="bg-background border border-border text-foreground text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer hover:bg-muted/50 transition-colors w-full"
-                defaultValue="English"
+                value={locale}
+                onChange={handleLanguageChange}
               >
-                <option value="English">English</option>
-                <option value="Hindi">Hindi</option>
-                <option value="Marathi">Marathi</option>
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="mr">Marathi</option>
               </select>
             </div>
           </nav>

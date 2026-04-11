@@ -12,6 +12,8 @@ import {
   Sparkles
 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useTranslations, useLocale } from "next-intl"
+import { usePathname, useRouter } from "@/i18n/routing"
 
 interface HeroSectionProps {
   onGetStarted: () => void
@@ -19,18 +21,26 @@ interface HeroSectionProps {
 
 export function HeroSection({ onGetStarted }: HeroSectionProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const t = useTranslations("Hero")
+  const locale = useLocale()
+  const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     setIsVisible(true)
   }, [])
 
+  const changeLanguage = (nextLocale: string) => {
+    router.replace(pathname, { locale: nextLocale });
+  }
+
   const features = [
-    { icon: FileText, label: "Upload Agreement" },
-    { icon: Sparkles, label: "AI Simplification" },
-    { icon: Languages, label: "Multi-Language" },
-    { icon: BarChart3, label: "Visual Breakdown" },
-    { icon: ShieldCheck, label: "Risk Alerts" },
-    { icon: CheckCircle2, label: "Verified Consent" },
+    { icon: FileText, label: t("features.upload") },
+    { icon: Sparkles, label: t("features.ai") },
+    { icon: Languages, label: t("features.lang") },
+    { icon: BarChart3, label: t("features.visual") },
+    { icon: ShieldCheck, label: t("features.risk") },
+    { icon: CheckCircle2, label: t("features.consent") },
   ]
 
   return (
@@ -43,10 +53,10 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
           }`}
         >
-          <span className="text-foreground">Understand Your</span>
+          <span className="text-foreground">{t("title1")}</span>
           <br />
           <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
-            Financial Agreements
+            {t("title2")}
           </span>
         </h1>
 
@@ -56,8 +66,8 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
           }`}
         >
-          We simplify complex loan documents, explain in your language, and ensure you truly understand before signing.
-          <span className="text-foreground font-medium"> No hidden surprises.</span>
+          {t("subtitle")}
+          <span className="text-foreground font-medium">{t("subtitleHighlight")}</span>
         </p>
 
         {/* Language Support Badge */}
@@ -68,11 +78,23 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
         >
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border">
             <Mic2 className="w-4 h-4 text-accent" />
-            <span className="text-sm text-muted-foreground">Available in</span>
+            <span className="text-sm text-muted-foreground">{t("availableIn")}</span>
             <div className="flex gap-2">
-              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium">English</span>
-              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium">हिंदी</span>
-              <span className="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs font-medium">मराठी</span>
+              <button 
+                onClick={() => changeLanguage('en')}
+                className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${locale === 'en' ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
+                English
+              </button>
+              <button 
+                onClick={() => changeLanguage('hi')}
+                className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${locale === 'hi' ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
+                हिंदी
+              </button>
+              <button 
+                onClick={() => changeLanguage('mr')}
+                className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${locale === 'mr' ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary hover:bg-primary/20'}`}>
+                मराठी
+              </button>
             </div>
           </div>
         </div>
@@ -88,7 +110,7 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
             onClick={onGetStarted}
             className="px-8 py-6 text-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-105"
           >
-            Upload Your Agreement
+            {t("uploadButton")}
             <ArrowDown className="w-5 h-5 ml-2" />
           </Button>
           <Button
@@ -96,7 +118,7 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
             variant="outline"
             className="px-8 py-6 text-lg border-primary/30 hover:bg-primary/10"
           >
-            See Demo
+            {t("demoButton")}
           </Button>
         </div>
 
@@ -130,15 +152,15 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
         >
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">50K+</div>
-            <div className="text-sm text-muted-foreground">Documents Simplified</div>
+            <div className="text-sm text-muted-foreground">{t("stats.docs")}</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">99%</div>
-            <div className="text-sm text-muted-foreground">User Satisfaction</div>
+            <div className="text-sm text-muted-foreground">{t("stats.satisfaction")}</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">3</div>
-            <div className="text-sm text-muted-foreground">Languages Supported</div>
+            <div className="text-sm text-muted-foreground">{t("stats.languages")}</div>
           </div>
         </div>
       </div>

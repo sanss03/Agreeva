@@ -44,62 +44,48 @@ By signing below, the borrower acknowledges understanding all terms and conditio
 export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
   const [text, setText] = useState("")
   const [isDragging, setIsDragging] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
+  const [isExtracting, setIsExtracting] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
-  const processFile = async (file: File) => {
-    if (!file) return;
-
-    const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-
-    if (isPDF) {
-      setIsUploading(true)
-      try {
-        const formData = new FormData()
-        formData.append("file", file)
-
-        const response = await fetch("http://127.0.0.1:5000/api/upload", {
-          method: "POST",
-          body: formData,
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "PDF extraction failed");
-        }
-        
-        const data = await response.json()
-        if (data.text) {
-          setText(data.text)
-        }
-      } catch (error: any) {
-        console.error("PDF Extraction Error:", error)
-        alert(`Error: ${error.message || "Something went wrong during PDF extraction"}`)
-      } finally {
-        setIsUploading(false)
-      }
-    } else if (file.type === "text/plain") {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setText(e.target?.result as string)
-      }
-      reader.readAsText(file)
-    } else {
-      alert("Please upload a .pdf or .txt file.")
+  const handleFileProcess = async (file: File) => {
+    setIsExtracting(true)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      
+      const response = await fetch("http://localhost:5000/api/simplify/extract", {
+        method: "POST",
+        body: formData
+      })
+      
+      if (!response.ok) throw new Error("Failed to extract text from file")
+      
+      const data = await response.json()
+      setText(data.text)
+    } catch (error) {
+      console.error("Extraction error:", error)
+      alert("Could not extract text from this file. Please ensure it is a valid PDF or Word Document.")
+    } finally {
+      setIsExtracting(false)
     }
   }
+
+
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer.files[0]
-    processFile(file)
+    if (file) {
+      handleFileProcess(file)
+    }
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      processFile(file)
+      handleFileProcess(file)
     }
   }
 
@@ -128,50 +114,80 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
         <CardContent className="relative p-6 md:p-8 space-y-6">
           {/* Drag & Drop Zone */}
-          <div
-            onDragOver={(e) => {
-              e.preventDefault()
-              setIsDragging(true)
-            }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-            className={cn(
-              "relative border-2 border-dashed rounded-2xl p-8 md:p-12 text-center cursor-pointer transition-all duration-300",
-              isDragging
-                ? "border-primary bg-primary/10 scale-[1.02]"
-                : "border-border/50 hover:border-primary/50 hover:bg-primary/5"
-            )}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".txt,.pdf"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <div className="flex flex-col items-center gap-4">
-              <div className={cn(
-                "w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-300",
-                isDragging
-                  ? "bg-primary text-primary-foreground scale-110"
-                  : "bg-muted text-muted-foreground"
-              )}>
-                <Upload className="w-8 h-8" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault()
+                setIsDragging(true)
+              }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={handleDrop}
+              onClick={() => fileInputRef.current?.click()}
+              className={cn(
+                "relative border-2 border-dashed rounded-2xl p-6 md:p-8 text-center cursor-pointer transition-all duration-300",
+                isDragging || isExtracting
+                  ? "border-primary bg-primary/10 scale-[1.02]"
+                  : "border-border/50 hover:border-primary/50 hover:bg-primary/5"
+              )}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".txt,.pdf,.doc,.docx,image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <div className="flex flex-col items-center gap-4">
+                <div className={cn(
+                  "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300",
+                  isDragging || isExtracting
+                    ? "bg-primary text-primary-foreground scale-110"
+                    : "bg-muted text-muted-foreground"
+                )}>
+                  {isExtracting ? (
+                    <Spinner className="w-6 h-6 text-primary-foreground" />
+                  ) : (
+                    <Upload className="w-6 h-6" />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <p className="text-foreground font-semibold">
+                    {isExtracting ? "Extracting text..." : "Upload File"}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    PDF, Word, or Image
+                  </p>
+                </div>
               </div>
-              <div className="space-y-2">
-                <p className="text-foreground font-semibold text-lg">
-                  {isUploading 
-                    ? "Extracting text..." 
-                    : isDragging 
-                      ? "Drop your file here" 
-                      : "Drop your agreement here"}
-                </p>
-                <p className="text-muted-foreground text-sm">
-                  {isUploading 
-                    ? "Please wait while our AI reads your PDF" 
-                    : "or click to browse • Supports PDF and TXT"}
-                </p>
+            </div>
+
+            {/* Camera Scan Zone */}
+            <div
+              onClick={() => cameraInputRef.current?.click()}
+              className={cn(
+                "relative border-2 border-solid rounded-2xl p-6 md:p-8 text-center cursor-pointer transition-all duration-300 border-border/50 hover:border-accent/50 hover:bg-accent/5"
+              )}
+            >
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 bg-accent/10 text-accent group-hover:scale-110">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-foreground font-semibold">
+                    Scan with Camera
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Take a photo
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -188,13 +204,15 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
             <textarea
               value={text}
               onChange={(e) => setText(e.target.value)}
+              disabled={isExtracting}
               placeholder="Paste your loan agreement, insurance policy, or any financial document here..."
-              className="w-full h-48 md:h-56 p-4 bg-muted/30 border border-border/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-foreground placeholder:text-muted-foreground transition-all duration-300"
+              className="w-full h-48 md:h-56 p-4 bg-muted/30 border border-border/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-foreground placeholder:text-muted-foreground transition-all duration-300 disabled:opacity-50"
             />
             <div className="flex items-center justify-between">
               <button
                 onClick={loadSample}
-                className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-2 transition-colors"
+                disabled={isExtracting}
+                className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
               >
                 <FileText className="w-4 h-4" />
                 Load sample agreement
@@ -208,7 +226,7 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
           {/* Submit Button */}
           <Button
             onClick={() => onUpload(text)}
-            disabled={!text.trim() || isProcessing}
+            disabled={!text.trim() || isProcessing || isExtracting}
             size="lg"
             className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100 disabled:shadow-none"
           >

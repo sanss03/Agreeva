@@ -4,7 +4,7 @@ import { useState } from "react"
 import { HelpCircle, CheckCircle2, XCircle, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { AgreementData } from "@/app/page"
+import type { AgreementData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 interface UnderstandingCheckProps {

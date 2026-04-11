@@ -15,22 +15,11 @@ import { ShareExport } from "@/components/share-export"
 import { WelcomeModal } from "@/components/welcome-modal"
 import { HeroSection } from "@/components/hero-section"
 import { SectionNavigation } from "@/components/section-navigation"
+import { VoiceExplanation } from "@/components/voice-explanation"
 import { cn } from "@/lib/utils"
+import { useLocale } from "next-intl"
 
-export type Step = 1 | 2 | 3 | 4 | 5 | 6 | 7
-
-export interface AgreementData {
-  originalText: string
-  simplifiedPoints: string[]
-  emi: number
-  totalAmount: number
-  principal: number
-  interestRate: number
-  tenure: number
-  interestAmount: number
-  riskLevel: "low" | "medium" | "high"
-  risks: { type: string; description: string; severity: "warning" | "danger" }[]
-}
+import { Step, AgreementData } from "@/lib/types"
 
 const sampleAgreementData: AgreementData = {
   originalText: "",
@@ -74,9 +63,11 @@ const sampleAgreementData: AgreementData = {
 }
 
 export default function Home() {
+  const locale = useLocale();
   const [agreementData, setAgreementData] = useState<AgreementData | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [activeSection, setActiveSection] = useState("hero")
+  const [showVoiceExplanation, setShowVoiceExplanation] = useState(false)
   const [fontSize, setFontSize] = useState(100)
   const [highContrast, setHighContrast] = useState(false)
   const [reduceMotion, setReduceMotion] = useState(false)
@@ -87,6 +78,7 @@ export default function Home() {
   const simplifyRef = useRef<HTMLDivElement>(null)
   const consentRef = useRef<HTMLDivElement>(null)
   const calculatorRef = useRef<HTMLDivElement>(null)
+  const voiceRef = useRef<HTMLDivElement>(null)
 
   const sections = [
     { id: "hero", label: "Home", ref: heroRef },
@@ -123,10 +115,26 @@ export default function Home() {
   }, [])
 
   const scrollToSection = (id: string) => {
+    if (id === "voice") {
+      if (voiceRef.current) {
+        voiceRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+      return
+    }
+
     const section = sections.find((s) => s.id === id)
     if (section?.ref.current) {
       section.ref.current.scrollIntoView({ behavior: "smooth", block: "start" })
     }
+  }
+
+  const handleListen = () => {
+    setShowVoiceExplanation(true)
+    setTimeout(() => {
+      if (voiceRef.current) {
+        voiceRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
+    }, 120)
   }
 
   const handleUpload = async (text: string) => {
@@ -135,7 +143,7 @@ export default function Home() {
       const response = await fetch("http://localhost:5000/api/simplify/text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({ text, language: locale })
       })
       if (!response.ok) throw new Error("Analysis failed")
       const data = await response.json()
@@ -210,8 +218,22 @@ export default function Home() {
             />
             <div className="max-w-4xl mx-auto">
               {agreementData ? (
-                <SimplifiedContent data={agreementData} onComplete={() => scrollToSection("consent")} />
-              ) : (
+              <>
+                <SimplifiedContent data={agreementData} onComplete={handleListen} />
+                {showVoiceExplanation && (
+                  <div ref={voiceRef} id="voice" className="pt-16">
+                    <SectionHeader
+                      number={1}
+                      title="Voice Explanation"
+                      subtitle="Listen to the simplified agreement in your preferred language"
+                    />
+                    <div className="max-w-4xl mx-auto mt-8">
+                      <VoiceExplanation data={agreementData} onComplete={() => scrollToSection("consent")} />
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
                 <LockedPlaceholder message="Upload a document first to see the simplified summary" />
               )}
             </div>
