@@ -4,14 +4,9 @@ import { useState, useRef, useEffect } from "react"
 import { Header } from "@/components/header"
 import { UploadSection } from "@/components/upload-section"
 import { SimplifiedContent } from "@/components/simplified-content"
-import { VoiceExplanation } from "@/components/voice-explanation"
-import { VisualBreakdown } from "@/components/visual-breakdown"
-import { RiskAlerts } from "@/components/risk-alerts"
-import { UnderstandingCheck } from "@/components/understanding-check"
 import { ConsentScreen } from "@/components/consent-screen"
 import { TrustBadges } from "@/components/trust-badges"
 import { Chatbot } from "@/components/chatbot"
-import { EMICalculator } from "@/components/emi-calculator"
 import { AccessibilityPanel } from "@/components/accessibility-panel"
 import { FinancialGlossary } from "@/components/financial-glossary"
 import { EmergencyHelpline } from "@/components/emergency-helpline"
@@ -80,7 +75,6 @@ const sampleAgreementData: AgreementData = {
 export default function Home() {
   const [agreementData, setAgreementData] = useState<AgreementData | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [quizAnswers, setQuizAnswers] = useState<boolean[]>([])
   const [activeSection, setActiveSection] = useState("hero")
   const [fontSize, setFontSize] = useState(100)
   const [highContrast, setHighContrast] = useState(false)
@@ -90,23 +84,13 @@ export default function Home() {
   const heroRef = useRef<HTMLDivElement>(null)
   const uploadRef = useRef<HTMLDivElement>(null)
   const simplifyRef = useRef<HTMLDivElement>(null)
-  const voiceRef = useRef<HTMLDivElement>(null)
-  const breakdownRef = useRef<HTMLDivElement>(null)
-  const quizRef = useRef<HTMLDivElement>(null)
-  const risksRef = useRef<HTMLDivElement>(null)
   const consentRef = useRef<HTMLDivElement>(null)
-  const calculatorRef = useRef<HTMLDivElement>(null)
 
   const sections = [
     { id: "hero", label: "Home", ref: heroRef },
     { id: "upload", label: "Upload", ref: uploadRef },
     { id: "simplify", label: "Simplify", ref: simplifyRef },
-    { id: "voice", label: "Voice", ref: voiceRef },
-    { id: "breakdown", label: "Breakdown", ref: breakdownRef },
-    { id: "quiz", label: "Quiz", ref: quizRef },
-    { id: "risks", label: "Risks", ref: risksRef },
     { id: "consent", label: "Consent", ref: consentRef },
-    { id: "calculator", label: "Calculator", ref: calculatorRef },
   ]
 
   // Intersection observer for active section tracking
@@ -149,10 +133,6 @@ export default function Home() {
     setIsProcessing(false)
     // Scroll to simplify section
     setTimeout(() => scrollToSection("simplify"), 500)
-  }
-
-  const handleQuizComplete = (answers: boolean[]) => {
-    setQuizAnswers(answers)
   }
 
   return (
@@ -210,13 +190,13 @@ export default function Home() {
         >
           <div className="container mx-auto px-4">
             <SectionHeader
-              number={2}
+              number={1}
               title="AI Simplified Summary"
               subtitle="Your agreement explained in simple, easy-to-understand language"
             />
             <div className="max-w-4xl mx-auto">
               {agreementData ? (
-                <SimplifiedContent data={agreementData} onComplete={() => scrollToSection("voice")} />
+                <SimplifiedContent data={agreementData} onComplete={() => scrollToSection("consent")} />
               ) : (
                 <LockedPlaceholder message="Upload a document first to see the simplified summary" />
               )}
@@ -224,111 +204,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Voice Explanation Section */}
-        <section
-          ref={voiceRef}
-          id="voice"
-          className={cn(
-            "min-h-screen py-16 md:py-24 transition-opacity duration-500",
-            !agreementData && "opacity-50 pointer-events-none"
-          )}
-        >
-          <div className="container mx-auto px-4">
-            <SectionHeader
-              number={3}
-              title="Listen in Your Language"
-              subtitle="Audio explanation in English, Hindi, or Marathi"
-            />
-            <div className="max-w-4xl mx-auto">
-              {agreementData ? (
-                <VoiceExplanation data={agreementData} onComplete={() => scrollToSection("breakdown")} />
-              ) : (
-                <LockedPlaceholder message="Upload a document first to listen to the explanation" />
-              )}
-            </div>
-          </div>
-        </section>
 
-        {/* Visual Breakdown Section */}
-        <section
-          ref={breakdownRef}
-          id="breakdown"
-          className={cn(
-            "min-h-screen py-16 md:py-24 transition-opacity duration-500",
-            !agreementData && "opacity-50 pointer-events-none"
-          )}
-        >
-          <div className="container mx-auto px-4">
-            <SectionHeader
-              number={4}
-              title="Visual Breakdown"
-              subtitle="See exactly what you will pay with clear charts and numbers"
-            />
-            <div className="max-w-5xl mx-auto">
-              {agreementData ? (
-                <VisualBreakdown data={agreementData} onComplete={() => scrollToSection("quiz")} />
-              ) : (
-                <LockedPlaceholder message="Upload a document first to see the visual breakdown" />
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Understanding Quiz Section */}
-        <section
-          ref={quizRef}
-          id="quiz"
-          className={cn(
-            "min-h-screen py-16 md:py-24 transition-opacity duration-500",
-            !agreementData && "opacity-50 pointer-events-none"
-          )}
-        >
-          <div className="container mx-auto px-4">
-            <SectionHeader
-              number={5}
-              title="Understanding Check"
-              subtitle="Answer a few questions to confirm you understand the agreement"
-            />
-            <div className="max-w-4xl mx-auto">
-              {agreementData ? (
-                <UnderstandingCheck
-                  data={agreementData}
-                  onComplete={(answers) => {
-                    handleQuizComplete(answers)
-                    scrollToSection("risks")
-                  }}
-                />
-              ) : (
-                <LockedPlaceholder message="Upload a document first to take the understanding check" />
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Risk Alerts Section */}
-        <section
-          ref={risksRef}
-          id="risks"
-          className={cn(
-            "min-h-screen py-16 md:py-24 transition-opacity duration-500",
-            !agreementData && "opacity-50 pointer-events-none"
-          )}
-        >
-          <div className="container mx-auto px-4">
-            <SectionHeader
-              number={6}
-              title="Risk Alerts"
-              subtitle="Important warnings and risks you should know about"
-            />
-            <div className="max-w-4xl mx-auto">
-              {agreementData ? (
-                <RiskAlerts data={agreementData} onComplete={() => scrollToSection("consent")} />
-              ) : (
-                <LockedPlaceholder message="Upload a document first to see risk alerts" />
-              )}
-            </div>
-          </div>
-        </section>
 
         {/* Final Consent Section */}
         <section
@@ -341,7 +217,7 @@ export default function Home() {
         >
           <div className="container mx-auto px-4">
             <SectionHeader
-              number={7}
+              number={2}
               title="Verified Consent"
               subtitle="Review everything and give your informed approval"
             />
@@ -349,7 +225,7 @@ export default function Home() {
               {agreementData ? (
                 <ConsentScreen
                   data={agreementData}
-                  quizPassed={quizAnswers.length > 0 && quizAnswers.every((a) => a)}
+                  quizPassed={true}
                 />
               ) : (
                 <LockedPlaceholder message="Upload a document first to provide your consent" />
@@ -358,24 +234,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* EMI Calculator Section */}
-        <section
-          ref={calculatorRef}
-          id="calculator"
-          className="min-h-screen py-16 md:py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent"
-        >
-          <div className="container mx-auto px-4">
-            <SectionHeader
-              number={0}
-              title="EMI Calculator"
-              subtitle="Calculate your monthly payments for any loan amount"
-              isBonus
-            />
-            <div className="max-w-2xl mx-auto">
-              <EMICalculator />
-            </div>
-          </div>
-        </section>
+
 
         {/* Trust Badges & Footer */}
         <section className="py-16">

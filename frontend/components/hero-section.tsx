@@ -25,26 +25,17 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
   }, [])
 
   const features = [
-    { icon: FileText, label: "Upload Agreement", color: "from-blue-500 to-cyan-500" },
-    { icon: Sparkles, label: "AI Simplification", color: "from-purple-500 to-pink-500" },
-    { icon: Languages, label: "Multi-Language", color: "from-green-500 to-emerald-500" },
-    { icon: BarChart3, label: "Visual Breakdown", color: "from-orange-500 to-yellow-500" },
-    { icon: ShieldCheck, label: "Risk Alerts", color: "from-red-500 to-rose-500" },
-    { icon: CheckCircle2, label: "Verified Consent", color: "from-indigo-500 to-violet-500" },
+    { icon: FileText, label: "Upload Agreement" },
+    { icon: Sparkles, label: "AI Simplification" },
+    { icon: Languages, label: "Multi-Language" },
+    { icon: BarChart3, label: "Visual Breakdown" },
+    { icon: ShieldCheck, label: "Risk Alerts" },
+    { icon: CheckCircle2, label: "Verified Consent" },
   ]
 
   return (
     <div className="container mx-auto px-4 py-12 md:py-20">
       <div className="max-w-5xl mx-auto text-center">
-        {/* Badge */}
-        <div
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-8 transition-all duration-700 ${
-            isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
-          }`}
-        >
-          <Sparkles className="w-4 h-4 text-primary" />
-          <span className="text-sm font-medium text-primary">AI-Powered Financial Understanding</span>
-        </div>
 
         {/* Main Headline */}
         <h1
@@ -121,8 +112,8 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
               className="group flex flex-col items-center gap-2 p-4 rounded-xl bg-card/50 border border-border hover:border-primary/50 transition-all hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 cursor-default"
               style={{ transitionDelay: `${500 + index * 50}ms` }}
             >
-              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${feature.color} flex items-center justify-center`}>
-                <feature.icon className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-lg border border-border bg-muted/50 flex items-center justify-center group-hover:bg-muted transition-colors">
+                <feature.icon className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
               <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground transition-colors text-center">
                 {feature.label}
