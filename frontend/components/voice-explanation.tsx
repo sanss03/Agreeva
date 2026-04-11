@@ -1,11 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Play, Pause, Volume2, ArrowRight, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { AgreementData } from "@/app/page"
+import type { AgreementData } from "@/lib/types"
 import { cn } from "@/lib/utils"
+
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
 
 interface VoiceExplanationProps {
   data: AgreementData
@@ -13,40 +15,131 @@ interface VoiceExplanationProps {
 }
 
 const languages = [
-  { code: "en", name: "English", native: "English", flag: "🇬🇧" },
-  { code: "hi", name: "Hindi", native: "हिंदी", flag: "🇮🇳" },
-  { code: "mr", name: "Marathi", native: "मराठी", flag: "🇮🇳" },
+  { code: "en", name: "English", native: "English", flag: "🇬🇧", voice: "en-US" },
+  { code: "hi", name: "Hindi", native: "हिंदी", flag: "🇮🇳", voice: "hi-IN" },
+  { code: "mr", name: "Marathi", native: "मराठी", flag: "🇮🇳", voice: "mr-IN" },
 ]
 
-export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
+export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
   const [selectedLang, setSelectedLang] = useState("en")
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [hasListened, setHasListened] = useState(false)
+  
+  const synthRef = useRef<SpeechSynthesis | null>(null)
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  // Simulate audio playback
   useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (isPlaying) {
-      interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 100) {
-            setIsPlaying(false)
-            setHasListened(true)
-            return 100
-          }
-          return prev + 1
-        })
-      }, 100)
+    if (typeof window !== "undefined") {
+      synthRef.current = window.speechSynthesis
+      audioRef.current = new Audio()
+      audioRef.current.onended = () => {
+        setIsPlaying(false)
+        setProgress(100)
+        setHasListened(true)
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+      }
+      audioRef.current.ontimeupdate = () => {
+        if (audioRef.current) {
+          const p = (audioRef.current.currentTime / audioRef.current.duration) * 100
+          setProgress(p)
+        }
+      }
     }
-    return () => clearInterval(interval)
-  }, [isPlaying])
+    return () => {
+      if (synthRef.current) {
+        synthRef.current.cancel()
+      }
+      if (audioRef.current) {
+        audioRef.current.pause()
+        URL.revokeObjectURL(audioRef.current.src)
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current)
+      }
+    }
+  }, [])
 
-  const togglePlayback = () => {
-    if (progress >= 100) {
-      setProgress(0)
+  const togglePlayback = async () => {
+    const payloadText = data.simplifiedPoints.join('. ') + '. ' +
+      data.risks.map((r: { description: string }) => r.description).join('. ');
+
+    if (isPlaying) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setIsPlaying(false);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      return;
     }
-    setIsPlaying(!isPlaying)
+
+    // Start playback
+    if (progress >= 100) setProgress(0);
+    setIsPlaying(true);
+
+    try {
+      console.log(`Starting TTS for language: ${selectedLang}`)
+      const response = await fetch(`${API_BASE}/api/tts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: payloadText,
+          lang: selectedLang,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('TTS API Error:', response.status, errorData)
+        throw new Error(`TTS request failed: ${response.status}`)
+      }
+
+      const audioBlob = await response.blob();
+      console.log(`Received audio blob: ${audioBlob.size} bytes`)
+      const audioUrl = URL.createObjectURL(audioBlob);
+
+      if (audioRef.current) {
+        if (audioRef.current.src) {
+          URL.revokeObjectURL(audioRef.current.src);
+        }
+        audioRef.current.src = audioUrl;
+        console.log(`Playing audio from blob URL`)
+        await audioRef.current.play();
+      }
+    } catch (error) {
+      console.error('TTS error:', error);
+      setIsPlaying(false);
+      // Fallback to browser TTS
+      if (synthRef.current) {
+        const utterance = new SpeechSynthesisUtterance(payloadText);
+        const targetLang = languages.find(l => l.code === selectedLang)?.voice || "en-US";
+        utterance.lang = targetLang;
+        utterance.rate = 0.9;
+
+        utterance.onend = () => {
+          setIsPlaying(false);
+          setProgress(100);
+          setHasListened(true);
+          if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        };
+
+        synthRef.current.speak(utterance);
+
+        // Simulate progress
+        const estDuration = payloadText.length * 60;
+        const start = Date.now();
+
+        progressIntervalRef.current = setInterval(() => {
+          if (!synthRef.current?.speaking) return;
+          const p = Math.min(((Date.now() - start) / estDuration) * 100, 99);
+          setProgress(p);
+        }, 200);
+      }
+    }
   }
 
   const [waveformTick, setWaveformTick] = useState(0)
@@ -101,10 +194,10 @@ export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
           Voice Explanation
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-          Listen in Your Language
+          Listen to Your Explanation
         </h2>
         <p className="text-muted-foreground">
-          Hear the agreement explained in simple words
+          Hear the agreement read aloud by our Voice Assistant
         </p>
       </div>
 
@@ -116,7 +209,7 @@ export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-primary flex items-center justify-center">
               <Globe className="w-5 h-5 text-white" />
             </div>
-            Select Your Language
+            Select Voice Language
           </CardTitle>
         </CardHeader>
         <CardContent className="relative">
@@ -127,7 +220,7 @@ export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
                 onClick={() => {
                   setSelectedLang(lang.code)
                   setProgress(0)
-                  setIsPlaying(false)
+                  if (isPlaying) togglePlayback() // stop if playing
                 }}
                 className={cn(
                   "p-4 rounded-xl border-2 transition-all duration-300 text-center",
@@ -159,10 +252,8 @@ export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
           {/* Progress Bar */}
           <div className="mb-6">
             <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-              <span>
-                {Math.floor(progress / 100 * 45)}s
-              </span>
-              <span>0:45</span>
+              <span>Playing locally...</span>
+              <span>{Math.floor(progress)}%</span>
             </div>
             <div className="relative h-2 bg-muted rounded-full overflow-hidden">
               <div
@@ -190,7 +281,6 @@ export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
                 "active:scale-95"
               )}
             >
-              {/* Pulse Animation */}
               {isPlaying && (
                 <>
                   <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
@@ -210,10 +300,10 @@ export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
           {/* Helper Text */}
           <p className="text-center text-sm text-muted-foreground mt-4">
             {isPlaying
-              ? "Listening..."
+              ? "Reading aloud..."
               : progress >= 100
               ? "Playback complete! You can replay or continue."
-              : "Tap to play the audio explanation"}
+              : "Tap to listen to the explanation aloud"}
           </p>
         </CardContent>
       </Card>

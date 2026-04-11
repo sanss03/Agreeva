@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { AlertTriangle, ShieldAlert, ArrowRight, TrendingUp, Clock, Banknote, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { AgreementData } from "@/app/page"
+import type { AgreementData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 interface RiskAlertsProps {
@@ -46,7 +46,7 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
 
   useEffect(() => {
     // Animate risks appearing one by one
-    data.risks.forEach((_, index) => {
+    data.risks.forEach((risk: { type: string; description: string; severity: "warning" | "danger" }, index: number) => {
       setTimeout(() => {
         setVisibleRisks((prev) => [...prev, index])
       }, 500 + index * 300)
@@ -158,7 +158,7 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
 
       {/* Individual Risks */}
       <div className="space-y-4">
-        {data.risks.map((risk, index) => {
+        {data.risks.map((risk: { type: string; description: string; severity: "warning" | "danger" }, index: number) => {
           const isVisible = visibleRisks.includes(index)
           const isDanger = risk.severity === "danger"
 

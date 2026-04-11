@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { Upload, FileText, Volume2, BarChart3, HelpCircle, AlertTriangle, CheckCircle } from "lucide-react"
-import type { Step } from "@/app/page"
+import type { Step } from "@/lib/types"
 
 interface ProgressStepsProps {
   currentStep: Step

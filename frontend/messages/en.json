@@ -1,0 +1,24 @@
+{
+  "Hero": {
+    "title1": "Understand Your",
+    "title2": "Financial Agreements",
+    "subtitle": "We simplify complex loan documents, explain in your language, and ensure you truly understand before signing.",
+    "subtitleHighlight": " No hidden surprises.",
+    "uploadButton": "Upload Your Agreement",
+    "demoButton": "See Demo",
+    "availableIn": "Available in",
+    "stats": {
+      "docs": "Documents Simplified",
+      "satisfaction": "User Satisfaction",
+      "languages": "Languages Supported"
+    },
+    "features": {
+      "upload": "Upload Agreement",
+      "ai": "AI Simplification",
+      "lang": "Multi-Language",
+      "visual": "Visual Breakdown",
+      "risk": "Risk Alerts",
+      "consent": "Verified Consent"
+    }
+  }
+}

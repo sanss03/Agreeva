@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { BarChart3, ArrowRight, TrendingUp, Calendar, Wallet, PiggyBank } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { AgreementData } from "@/app/page"
+import type { AgreementData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 interface VisualBreakdownProps {
