@@ -128,11 +128,22 @@ export default function Home() {
 
   const handleUpload = async (text: string) => {
     setIsProcessing(true)
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setAgreementData({ ...sampleAgreementData, originalText: text })
-    setIsProcessing(false)
-    // Scroll to simplify section
-    setTimeout(() => scrollToSection("simplify"), 500)
+    try {
+      const response = await fetch("http://localhost:5000/api/simplify/text", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      })
+      if (!response.ok) throw new Error("Analysis failed")
+      const data = await response.json()
+      setAgreementData(data)
+      setTimeout(() => scrollToSection("simplify"), 500)
+    } catch (error) {
+      console.error("Upload error:", error)
+      setAgreementData({ ...sampleAgreementData, originalText: text })
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
