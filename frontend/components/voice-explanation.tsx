@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AgreementData } from "@/app/page"
 import { cn } from "@/lib/utils"
+import { SpeakButton } from '@/components/ui/speak-button'
 
 interface VoiceExplanationProps {
   data: AgreementData
@@ -18,7 +19,8 @@ const languages = [
   { code: "mr", name: "Marathi", native: "मराठी", flag: "🇮🇳" },
 ]
 
-export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
+export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
+  const [ttsLanguage, setTtsLanguage] = useState('en')
   const [selectedLang, setSelectedLang] = useState("en")
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -119,7 +121,31 @@ export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
             Select Your Language
           </CardTitle>
         </CardHeader>
-        <CardContent className="relative">
+        <CardContent className="relative space-y-4">
+          <div className="flex flex-col gap-4">
+            <p className="text-sm font-medium text-muted-foreground">Select Voice Language:</p>
+            <div className="flex gap-2">
+              {[
+                { code: 'en', label: 'English' },
+                { code: 'hi', label: 'हिन्दी' },
+                { code: 'mr', label: 'मराठी' }
+              ].map(lang => (
+                <button
+                  key={lang.code}
+                  onClick={() => setTtsLanguage(lang.code)}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-medium transition-all",
+                    ttsLanguage === lang.code 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted hover:bg-muted/80"
+                  )}
+                >
+                  {lang.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-3 gap-3">
             {languages.map((lang) => (
               <button
@@ -143,6 +169,16 @@ export function VoiceExplanation({ onComplete }: VoiceExplanationProps) {
                 <span className="text-xs text-muted-foreground">{lang.name}</span>
               </button>
             ))}
+          </div>
+          
+          <div className="flex justify-center pt-4">
+            <SpeakButton 
+              text={data.simplifiedPoints.join('. ')} 
+              language={ttsLanguage}
+              size="md"
+              className="bg-primary/10 hover:bg-primary/20"
+            />
+            <span className="ml-2 text-sm text-muted-foreground flex items-center">Listen to full summary</span>
           </div>
         </CardContent>
       </Card>

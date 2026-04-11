@@ -44,29 +44,62 @@ By signing below, the borrower acknowledges understanding all terms and conditio
 export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
   const [text, setText] = useState("")
   const [isDragging, setIsDragging] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const processFile = async (file: File) => {
+    if (!file) return;
+
+    const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+    if (isPDF) {
+      setIsUploading(true)
+      try {
+        const formData = new FormData()
+        formData.append("file", file)
+
+        const response = await fetch("http://127.0.0.1:5000/api/upload", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "PDF extraction failed");
+        }
+        
+        const data = await response.json()
+        if (data.text) {
+          setText(data.text)
+        }
+      } catch (error: any) {
+        console.error("PDF Extraction Error:", error)
+        alert(`Error: ${error.message || "Something went wrong during PDF extraction"}`)
+      } finally {
+        setIsUploading(false)
+      }
+    } else if (file.type === "text/plain") {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setText(e.target?.result as string)
+      }
+      reader.readAsText(file)
+    } else {
+      alert("Please upload a .pdf or .txt file.")
+    }
+  }
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer.files[0]
-    if (file && file.type === "text/plain") {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setText(e.target?.result as string)
-      }
-      reader.readAsText(file)
-    }
+    processFile(file)
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setText(e.target?.result as string)
-      }
-      reader.readAsText(file)
+      processFile(file)
     }
   }
 
@@ -128,10 +161,16 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
               </div>
               <div className="space-y-2">
                 <p className="text-foreground font-semibold text-lg">
-                  {isDragging ? "Drop your file here" : "Drop your agreement here"}
+                  {isUploading 
+                    ? "Extracting text..." 
+                    : isDragging 
+                      ? "Drop your file here" 
+                      : "Drop your agreement here"}
                 </p>
                 <p className="text-muted-foreground text-sm">
-                  or click to browse • Supports TXT files
+                  {isUploading 
+                    ? "Please wait while our AI reads your PDF" 
+                    : "or click to browse • Supports PDF and TXT"}
                 </p>
               </div>
             </div>

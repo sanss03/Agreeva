@@ -16,7 +16,11 @@ import {
   Calculator,
   FileText,
   AlertTriangle,
+  Volume2,
+  Mic,
 } from "lucide-react"
+import { SpeakButton } from "@/components/ui/speak-button"
+import { useTTS } from "@/hooks/useTTS"
 
 interface Message {
   id: string
@@ -40,7 +44,12 @@ const sampleResponses: Record<string, string> = {
   "default": "I can help you understand your financial agreement better. You can ask me about:\n\n• EMI calculations\n• Interest rates explained simply\n• Risk factors in your agreement\n• Any terms you don't understand\n\nHow can I assist you today?"
 }
 
-export function Chatbot() {
+interface ChatbotProps {
+  documentContext?: string
+}
+
+export function Chatbot({ documentContext }: ChatbotProps) {
+  const { speak } = useTTS()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -52,6 +61,7 @@ export function Chatbot() {
   ])
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -78,6 +88,36 @@ export function Chatbot() {
     }
     return sampleResponses.default
   }
+
+  const detectLanguage = (text: string) => {
+    if (text.includes("क्या") || text.includes("है") || text.includes("क्यों")) return "hi";
+    if (text.includes("आहे") || text.includes("का") || text.includes("मला")) return "mr";
+    return "en";
+  };
+
+
+
+  const startListening = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Speech recognition is not supported in your browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-IN";
+    
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => setIsListening(false);
+    
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+    };
+
+    recognition.start();
+  };
 
   const handleSend = async (text?: string) => {
     const messageText = text || input
@@ -115,7 +155,7 @@ export function Chatbot() {
         body: JSON.stringify({
           session_id: sessionId,
           message: messageText,
-          document_context: "Financial loan agreement assistant"
+          document_context: documentContext || "General agreement help",
         })
       })
       if (res.ok) {
@@ -134,6 +174,9 @@ export function Chatbot() {
 
     setIsTyping(false)
     setMessages((prev) => [...prev, assistantMessage])
+    
+    // Auto-play the voice response
+    speak(reply, detectLanguage(reply))
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -258,12 +301,21 @@ export function Chatbot() {
                     )}
                   >
                     <p className="text-sm whitespace-pre-line">{message.content}</p>
-                    <p className="text-[10px] opacity-60 mt-1">
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                    <div className="flex items-center justify-between mt-1 pt-1 border-t border-border/10">
+                      <p className="text-[10px] opacity-60">
+                        {message.timestamp.toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                      {message.role === "assistant" && (
+                        <SpeakButton 
+                          text={message.content} 
+                          language={detectLanguage(message.content)}
+                          className="mt-1"
+                        />
+                      )}
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -320,6 +372,17 @@ export function Chatbot() {
                   placeholder="Ask anything about your agreement..."
                   className="flex-1 bg-muted/50 border-0 focus-visible:ring-1"
                 />
+                <Button
+                  onClick={startListening}
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "shrink-0 transition-all duration-300",
+                    isListening && "text-red-500 bg-red-500/10 animate-pulse scale-110"
+                  )}
+                >
+                  <Mic className="h-4 w-4" />
+                </Button>
                 <Button
                   onClick={() => handleSend()}
                   disabled={!input.trim() || isTyping}

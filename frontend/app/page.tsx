@@ -7,8 +7,9 @@ import { SimplifiedContent } from "@/components/simplified-content"
 import { ConsentScreen } from "@/components/consent-screen"
 import { TrustBadges } from "@/components/trust-badges"
 import { Chatbot } from "@/components/chatbot"
+import { EMICalculator } from "@/components/emi-calculator"
 import { AccessibilityPanel } from "@/components/accessibility-panel"
-import { FinancialGlossary } from "@/components/financial-glossary"
+
 import { EmergencyHelpline } from "@/components/emergency-helpline"
 import { ShareExport } from "@/components/share-export"
 import { WelcomeModal } from "@/components/welcome-modal"
@@ -85,12 +86,14 @@ export default function Home() {
   const uploadRef = useRef<HTMLDivElement>(null)
   const simplifyRef = useRef<HTMLDivElement>(null)
   const consentRef = useRef<HTMLDivElement>(null)
+  const calculatorRef = useRef<HTMLDivElement>(null)
 
   const sections = [
     { id: "hero", label: "Home", ref: heroRef },
     { id: "upload", label: "Upload", ref: uploadRef },
     { id: "simplify", label: "Simplify", ref: simplifyRef },
     { id: "consent", label: "Consent", ref: consentRef },
+    { id: "calculator", label: "Calculator", ref: calculatorRef },
   ]
 
   // Intersection observer for active section tracking
@@ -247,6 +250,25 @@ export default function Home() {
 
 
 
+        {/* EMI Calculator Section */}
+        <section
+          ref={calculatorRef}
+          id="calculator"
+          className="min-h-screen py-16 md:py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent"
+        >
+          <div className="container mx-auto px-4">
+            <SectionHeader
+              number={0}
+              title="EMI Calculator"
+              subtitle="Calculate your monthly payments for any loan amount"
+              isBonus
+            />
+            <div className="max-w-2xl mx-auto">
+              <EMICalculator />
+            </div>
+          </div>
+        </section>
+
         {/* Trust Badges & Footer */}
         <section className="py-16">
           <div className="container mx-auto px-4">
@@ -256,7 +278,7 @@ export default function Home() {
       </div>
 
       {/* Floating Tools */}
-      <Chatbot />
+      <Chatbot documentContext={agreementData?.originalText} />
       <AccessibilityPanel
         fontSize={fontSize}
         highContrast={highContrast}
@@ -265,7 +287,7 @@ export default function Home() {
         onHighContrastChange={setHighContrast}
         onReduceMotionChange={setReduceMotion}
       />
-      <FinancialGlossary />
+
       <EmergencyHelpline />
       <WelcomeModal />
     </main>

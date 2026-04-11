@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { CheckCircle2, Shield, Mic, MicOff, FileCheck, Sparkles, Download, Share2 } from "lucide-react"
+import { CheckCircle2, Shield, Mic, MicOff, FileCheck, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -20,6 +20,7 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
   const [isRecording, setIsRecording] = useState(false)
   const [voiceConfirmed, setVoiceConfirmed] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const allConsentsGiven = consent1 && consent2 && consent3
 
@@ -33,6 +34,7 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
   }
 
   const handleSubmit = async () => {
+    setIsSubmitting(true)
     try {
       const sessionRes = await fetch("http://localhost:5000/api/consent/session", {
         method: "POST",
@@ -58,6 +60,8 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
       })
     } catch (e) {
       console.error("Consent error:", e)
+    } finally {
+      setIsSubmitting(false)
     }
     setIsSubmitted(true)
   }
@@ -102,15 +106,11 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="w-4 h-4" />
-                  Download
-                </Button>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Share2 className="w-4 h-4" />
-                  Share
-                </Button>
+              <div className="text-right">
+                <p className="text-success font-bold text-sm">Consent Verified ✅</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Verified on: {new Date().toLocaleString()}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -352,7 +352,7 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500">
         <Button
           onClick={handleSubmit}
-          disabled={!allConsentsGiven}
+          disabled={!allConsentsGiven || isSubmitting}
           size="lg"
           className={cn(
             "h-16 px-10 text-lg font-bold transition-all duration-300 shadow-xl",

@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AgreementData } from "@/app/page"
 import { cn } from "@/lib/utils"
 
+import { SpeakButton } from '@/components/ui/speak-button'
+
 interface SimplifiedContentProps {
   data: AgreementData
   onComplete: () => void
@@ -62,11 +64,18 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
       <Card className="relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
         <div className="absolute inset-0 bg-gradient-to-br from-success/5 via-transparent to-primary/5" />
         <CardHeader className="relative pb-4">
-          <CardTitle className="flex items-center gap-3 text-lg">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-              <Lightbulb className="w-5 h-5 text-white" />
+          <CardTitle className="flex items-center justify-between gap-3 text-lg">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <Lightbulb className="w-5 h-5 text-white" />
+              </div>
+              Simple Summary
             </div>
-            Simple Summary
+            <SpeakButton 
+              text={data.simplifiedPoints.join('. ')} 
+              language="en"
+              size="md"
+            />
           </CardTitle>
         </CardHeader>
         <CardContent className="relative space-y-4">
@@ -88,9 +97,12 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
               )}>
                 {index + 1}
               </div>
-              <p className="text-foreground leading-relaxed pt-1">
-                {data.simplifiedPoints[index]}
-              </p>
+              <div className="flex-1">
+                <p className="text-foreground leading-relaxed pt-1">
+                  {data.simplifiedPoints[index]}
+                </p>
+                <SpeakButton text={data.simplifiedPoints[index]} language="en" />
+              </div>
             </div>
           ))}
 

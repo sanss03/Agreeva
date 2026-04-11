@@ -53,9 +53,9 @@ export function EmergencyHelpline() {
           onClick={() => setIsOpen(true)}
           className={cn(
             "rounded-r-xl rounded-l-none h-auto py-3 px-2",
-            "bg-gradient-to-b from-destructive to-destructive/80",
+            "bg-indigo-600 hover:bg-indigo-700 text-white",
             "hover:px-3 transition-all duration-300",
-            "shadow-lg"
+            "shadow-md shadow-indigo-200"
           )}
         >
           <div className="flex flex-col items-center gap-1">
@@ -91,14 +91,14 @@ export function EmergencyHelpline() {
               )}
             >
               {/* Header */}
-              <div className="bg-gradient-to-r from-destructive/20 to-destructive/5 p-4 border-b border-border/50">
+              <div className="bg-indigo-50 p-4 border-b border-indigo-100">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <div className="h-10 w-10 rounded-full bg-destructive/20 flex items-center justify-center">
-                      <Phone className="h-5 w-5 text-destructive" />
+                    <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                      <Phone className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold">Emergency Help</h2>
+                      <h2 className="text-lg font-semibold text-indigo-900">Emergency Help</h2>
                       <p className="text-xs text-muted-foreground">
                         Financial assistance helplines
                       </p>

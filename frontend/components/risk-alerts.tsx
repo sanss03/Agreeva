@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AgreementData } from "@/app/page"
 import { cn } from "@/lib/utils"
+import { SpeakButton } from '@/components/ui/speak-button'
 
 interface RiskAlertsProps {
   data: AgreementData
@@ -201,7 +202,10 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
                         {isDanger ? "HIGH" : "MEDIUM"}
                       </span>
                     </div>
-                    <p className="text-foreground">{risk.description}</p>
+                    <div className="flex items-center justify-between gap-4">
+                      <p className="text-foreground">{risk.description}</p>
+                      <SpeakButton text={`${risk.type}. ${risk.description}`} language="en" />
+                    </div>
                   </div>
                 </div>
               </CardContent>
