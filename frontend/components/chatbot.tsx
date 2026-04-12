@@ -36,13 +36,9 @@ const quickQuestions = [
   { icon: HelpCircle, text: "What is interest rate?" },
 ]
 
-const sampleResponses: Record<string, string> = {
-  "what is my emi": "Based on your loan of ₹5,00,000 at 12% interest for 36 months, your monthly EMI will be ₹16,607. This includes both principal and interest payments.",
-  "explain this agreement": "This is a personal loan agreement from ABC Bank. Key points:\n\n• Loan Amount: ₹5,00,000\n• Interest Rate: 12% per annum\n• Tenure: 36 months\n• Processing Fee: ₹5,000 (1%)\n• No prepayment penalty after 6 months",
-  "what are the risks": "Key risks to be aware of:\n\n⚠️ High interest rate (12%) compared to market average (10%)\n⚠️ Late payment penalty of ₹500 + 2% per month\n⚠️ Processing fee is non-refundable\n⚠️ Prepayment penalty in first 6 months",
-  "what is interest rate": "Interest rate is the cost of borrowing money. Your agreement has 12% annual interest. This means for every ₹100 you borrow, you pay ₹12 extra per year. Over 3 years, you will pay ₹97,852 as total interest.",
-  "default": "I can help you understand your financial agreement better. You can ask me about:\n\n• EMI calculations\n• Interest rates explained simply\n• Risk factors in your agreement\n• Any terms you don't understand\n\nHow can I assist you today?"
-}
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+
+const defaultMessage = "I can help you understand your financial agreement better. You can ask me about:\n\n• EMI calculations\n• Interest rates explained simply\n• Risk factors in your agreement\n• Any terms you don't understand\n\nHow can I assist you today?"
 
 interface ChatbotProps {
   documentContext?: string
@@ -62,6 +58,7 @@ export function Chatbot({ documentContext }: ChatbotProps) {
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const [isListening, setIsListening] = useState(false)
+  const [suggestions, setSuggestions] = useState(quickQuestions)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -79,15 +76,7 @@ export function Chatbot({ documentContext }: ChatbotProps) {
     }
   }, [isOpen])
 
-  const getResponse = (query: string): string => {
-    const lowerQuery = query.toLowerCase()
-    for (const [key, response] of Object.entries(sampleResponses)) {
-      if (key !== "default" && lowerQuery.includes(key)) {
-        return response
-      }
-    }
-    return sampleResponses.default
-  }
+
 
   const detectLanguage = (text: string) => {
     if (text.includes("क्या") || text.includes("है") || text.includes("क्यों")) return "hi";
@@ -134,36 +123,34 @@ export function Chatbot({ documentContext }: ChatbotProps) {
     setInput("")
     setIsTyping(true)
 
-    let reply = getResponse(messageText)
+    let reply = ""
     try {
-      let sessionId = localStorage.getItem("chat_session_id")
-      if (!sessionId) {
-        const sessionRes = await fetch("http://localhost:5000/api/chat/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({})
-        })
-        const sessionData = await sessionRes.json()
-        sessionId = sessionData.session_id
-        if (sessionId) {
-          localStorage.setItem("chat_session_id", sessionId)
-        }
-      }
-      const res = await fetch("http://localhost:5000/api/chat/message", {
+      let sessionId = typeof window !== "undefined" ? localStorage.getItem("chat_session_id") : null
+      
+      const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          session_id: sessionId,
-          message: messageText,
-          document_context: documentContext || "General agreement help",
+          question: messageText,
+          language: detectLanguage(messageText),
         })
       })
+
       if (res.ok) {
         const data = await res.json()
-        reply = data.reply
+        reply = data.answer
+        if (data.suggestions) {
+          setSuggestions(data.suggestions.map((s: string) => ({ 
+            icon: HelpCircle, 
+            text: s 
+          })))
+        }
+      } else {
+        reply = "I'm having trouble connecting to the AI. Please try again later."
       }
     } catch (err) {
       console.error("Chat error:", err)
+      reply = "I'm sorry, I'm having trouble generating a response. Please try again."
     }
     const assistantMessage: Message = {
       id: (Date.now() + 1).toString(),
@@ -344,7 +331,7 @@ export function Chatbot({ documentContext }: ChatbotProps) {
             {/* Quick Questions */}
             <div className="px-4 pb-2">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {quickQuestions.map((q, i) => (
+                {suggestions.map((q, i) => (
                   <button
                     key={i}
                     onClick={() => handleSend(q.text)}

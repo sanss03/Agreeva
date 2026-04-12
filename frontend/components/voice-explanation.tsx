@@ -23,7 +23,6 @@ const languages = [
 
 export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
   const [selectedLang, setSelectedLang] = useState("en")
-  const [selectedLang, setSelectedLang] = useState("en")
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [hasListened, setHasListened] = useState(false)

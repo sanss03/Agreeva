@@ -6,6 +6,7 @@
 let userContext = {
   filename: null,
   content: null,
+  simplifiedSummary: null,
   uploadedAt: null,
 };
 
@@ -15,16 +16,22 @@ let userContext = {
  * @param {string} content
  */
 function setUserContext(filename, content) {
-  userContext = {
-    filename,
-    content,
-    uploadedAt: new Date().toISOString(),
-  };
+  userContext.filename = filename;
+  userContext.content = content;
+  userContext.uploadedAt = new Date().toISOString();
+}
+
+/**
+ * Save simplified summary generated from user-uploaded PDF.
+ * @param {string} summary
+ */
+function setSimplifiedContext(summary) {
+  userContext.simplifiedSummary = summary;
 }
 
 /**
  * Get the current user-uploaded PDF context.
- * @returns {{ filename: string|null, content: string|null, uploadedAt: string|null }}
+ * @returns {{ filename: string|null, content: string|null, simplifiedSummary: string|null, uploadedAt: string|null }}
  */
 function getUserContext() {
   return userContext;
@@ -34,7 +41,7 @@ function getUserContext() {
  * Clear the stored user context.
  */
 function clearUserContext() {
-  userContext = { filename: null, content: null, uploadedAt: null };
+  userContext = { filename: null, content: null, simplifiedSummary: null, uploadedAt: null };
 }
 
-module.exports = { setUserContext, getUserContext, clearUserContext };
+module.exports = { setUserContext, setSimplifiedContext, getUserContext, clearUserContext };

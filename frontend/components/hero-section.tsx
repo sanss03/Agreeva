@@ -113,13 +113,13 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
             {t("uploadButton")}
             <ArrowDown className="w-5 h-5 ml-2" />
           </Button>
-          <Button
+          {/* <Button
             size="lg"
             variant="outline"
             className="px-8 py-6 text-lg border-primary/30 hover:bg-primary/10"
           >
             {t("demoButton")}
-          </Button>
+          </Button> */}
         </div>
 
         {/* Feature Pills */}

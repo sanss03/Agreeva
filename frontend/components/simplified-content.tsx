@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { CheckCircle2, ArrowRight, Lightbulb } from "lucide-react"
+import { useLocale } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AgreementData } from "@/lib/types"
@@ -42,6 +43,7 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
     }
   }, [typingIndex, data.simplifiedPoints])
 
+  const locale = useLocale()
   const allPointsVisible = visiblePoints.length === data.simplifiedPoints.length
 
   return (
@@ -73,7 +75,7 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
             </div>
             <SpeakButton 
               text={data.simplifiedPoints.join('. ')} 
-              language="en"
+              language={locale}
               size="md"
             />
           </CardTitle>
@@ -101,7 +103,7 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
                 <p className="text-foreground leading-relaxed pt-1">
                   {data.simplifiedPoints[index]}
                 </p>
-                <SpeakButton text={data.simplifiedPoints[index]} language="en" />
+                <SpeakButton text={data.simplifiedPoints[index]} language={locale} />
               </div>
             </div>
           ))}

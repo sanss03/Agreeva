@@ -9,6 +9,7 @@ import { TrustBadges } from "@/components/trust-badges"
 import { Chatbot } from "@/components/chatbot"
 import { EMICalculator } from "@/components/emi-calculator"
 import { AccessibilityPanel } from "@/components/accessibility-panel"
+import { UnderstandingCheck } from "@/components/understanding-check"
 
 import { EmergencyHelpline } from "@/components/emergency-helpline"
 import { ShareExport } from "@/components/share-export"
@@ -20,6 +21,8 @@ import { cn } from "@/lib/utils"
 import { useLocale } from "next-intl"
 
 import { Step, AgreementData } from "@/lib/types"
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 const sampleAgreementData: AgreementData = {
   originalText: "",
@@ -68,6 +71,8 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [activeSection, setActiveSection] = useState("hero")
   const [showVoiceExplanation, setShowVoiceExplanation] = useState(false)
+  const [showQuiz, setShowQuiz] = useState(false)
+  const [quizPassed, setQuizPassed] = useState(false)
   const [fontSize, setFontSize] = useState(100)
   const [highContrast, setHighContrast] = useState(false)
   const [reduceMotion, setReduceMotion] = useState(false)
@@ -79,11 +84,14 @@ export default function Home() {
   const consentRef = useRef<HTMLDivElement>(null)
   const calculatorRef = useRef<HTMLDivElement>(null)
   const voiceRef = useRef<HTMLDivElement>(null)
+  const quizRef = useRef<HTMLDivElement>(null)
 
   const sections = [
     { id: "hero", label: "Home", ref: heroRef },
     { id: "upload", label: "Upload", ref: uploadRef },
     { id: "simplify", label: "Simplify", ref: simplifyRef },
+    { id: "voice", label: "Voice", ref: voiceRef, hidden: !showVoiceExplanation },
+    { id: "quiz", label: "Check", ref: quizRef, hidden: !showQuiz },
     { id: "consent", label: "Consent", ref: consentRef },
     { id: "calculator", label: "Calculator", ref: calculatorRef },
   ]
@@ -116,9 +124,11 @@ export default function Home() {
 
   const scrollToSection = (id: string) => {
     if (id === "voice") {
-      if (voiceRef.current) {
-        voiceRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
-      }
+      voiceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      return
+    }
+    if (id === "quiz") {
+      quizRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
       return
     }
 
@@ -140,7 +150,7 @@ export default function Home() {
   const handleUpload = async (text: string) => {
     setIsProcessing(true)
     try {
-      const response = await fetch("http://localhost:5000/api/simplify/text", {
+      const response = await fetch(`${API_BASE}/api/simplify/text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, language: locale })
@@ -176,7 +186,7 @@ export default function Home() {
 
         {/* Section Navigation - Sticky */}
         <SectionNavigation
-          sections={sections.map(({ id, label }) => ({ id, label }))}
+          sections={sections.filter(s => !s.hidden).map(({ id, label }) => ({ id, label }))}
           activeSection={activeSection}
           onSectionClick={scrollToSection}
           hasData={!!agreementData}
@@ -228,7 +238,33 @@ export default function Home() {
                       subtitle="Listen to the simplified agreement in your preferred language"
                     />
                     <div className="max-w-4xl mx-auto mt-8">
-                      <VoiceExplanation data={agreementData} onComplete={() => scrollToSection("consent")} />
+                      <VoiceExplanation 
+                        data={agreementData} 
+                        onComplete={() => {
+                          setShowQuiz(true)
+                          setTimeout(() => scrollToSection("quiz"), 120)
+                        }} 
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {showQuiz && (
+                  <div ref={quizRef} id="quiz" className="pt-16">
+                    <SectionHeader
+                      number={2}
+                      title="Understanding Check"
+                      subtitle="Let's make sure everything is clear before you sign"
+                    />
+                    <div className="max-w-4xl mx-auto mt-8">
+                      <UnderstandingCheck 
+                        data={agreementData} 
+                        onComplete={(results) => {
+                          const passed = results.filter(r => r).length >= 2 // Pass if 2/3 correct
+                          setQuizPassed(passed)
+                          scrollToSection("consent")
+                        }} 
+                      />
                     </div>
                   </div>
                 )}
@@ -261,7 +297,7 @@ export default function Home() {
               {agreementData ? (
                 <ConsentScreen
                   data={agreementData}
-                  quizPassed={true}
+                  quizPassed={quizPassed}
                 />
               ) : (
                 <LockedPlaceholder message="Upload a document first to provide your consent" />

@@ -5,6 +5,7 @@ const pdfParse = require('pdf-parse');
 const mammoth = require('mammoth');
 const tesseract = require('tesseract.js');
 const { callGrok } = require('../services/grok');
+const { setSimplifiedContext } = require('../services/userContext');
 
 const upload = multer({ 
   storage: multer.memoryStorage(), 
@@ -97,6 +98,10 @@ async function handleSimplifyRequest(req, res) {
     parsedData.emi = emi;
     parsedData.totalAmount = totalAmount;
     parsedData.interestAmount = interestAmount;
+
+    // Save for chatbot context
+    const summaryString = parsedData.simplifiedPoints.join("\n");
+    setSimplifiedContext(summaryString);
 
     return res.json(parsedData);
 

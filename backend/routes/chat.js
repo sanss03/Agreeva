@@ -48,15 +48,26 @@ function isGreeting(message) {
  */
 function resolveContext(question) {
   const userCtx = getUserContext();
+  
+  // Priority 1: AI Simplified Summary
+  if (userCtx.simplifiedSummary) {
+    console.log('[Chat] Context source: simplified-summary');
+    return userCtx.simplifiedSummary;
+  }
+  
+  // Priority 2: User-uploaded original PDF text
   if (userCtx.content) {
     console.log(`[Chat] Context source: user-pdf:${userCtx.filename}`);
     return `User uploaded document (${userCtx.filename}):\n${userCtx.content.slice(0, 2000)}`;
   }
+  
+  // Priority 3: docs/ knowledge base (general keyword match)
   const kbContext = searchRelevantContext(question);
   if (kbContext) {
     console.log('[Chat] Context source: knowledge-base');
     return `Knowledge base:\n${kbContext}`;
   }
+  
   console.log('[Chat] Context source: none');
   return '';
 }
@@ -154,25 +165,14 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const langInstruction = detectedLang === 'hindi' 
-      ? 'Hindi language using Devanagari script only'
-      : detectedLang === 'marathi'
-      ? 'Marathi language using Devanagari script only'  
-      : 'English language only';
-
-    const systemPrompt = `You are SamarthaSign AI, a friendly financial 
-assistant helping Indian users understand financial agreements. 
-Keep answers very short (2-3 sentences max). 
-Use very simple language, no legal jargon.
-IMPORTANT LANGUAGE RULE: You MUST reply in ${langInstruction}.
-This is mandatory. Do not switch languages under any circumstance.
-Document context: ${resolveContext(question) || 'Financial loan agreement'}`;
+    const summaryText = resolveContext(question) || 'No summary available.';
+    const finalSystemPrompt = `${SYSTEM_PROMPT}\n\nSummary:\n${summaryText}`;
 
     const messagesArray = [
-      { role: 'system', content: systemPrompt },
+      { role: 'system', content: finalSystemPrompt },
       {
         role: 'user',
-        content: `USER QUESTION:\n${question}\n\nFINAL INSTRUCTION:\nRespond ONLY in ${langInstruction}.\nSTRICTLY NO OTHER LANGUAGE.\n\n[After your answer, on a new line add exactly: SUGGESTIONS: <suggestion1> | <suggestion2>]`,
+        content: `USER QUESTION:\n${question}\n\n[After your answer, on a new line add exactly: SUGGESTIONS: <suggestion1> | <suggestion2>]`,
       },
     ];
 
@@ -233,27 +233,15 @@ router.post('/message', async (req, res) => {
       return res.json({ reply: answer, suggestions: ['Explain this agreement', 'What are risks?'], session_id });
     }
 
-    const langInstruction = detectedLang === 'hindi' 
-      ? 'Hindi language using Devanagari script only'
-      : detectedLang === 'marathi'
-      ? 'Marathi language using Devanagari script only'  
-      : 'English language only';
+    const summaryText = document_context || resolveContext(message) || 'No summary available.';
+    const finalSystemPrompt = `${SYSTEM_PROMPT}\n\nSummary:\n${summaryText}`;
 
-    const systemPrompt = `You are SamarthaSign AI, a friendly financial 
-assistant helping Indian users understand financial agreements. 
-Keep answers very short (2-3 sentences max). 
-Use very simple language, no legal jargon.
-IMPORTANT LANGUAGE RULE: You MUST reply in ${langInstruction}.
-This is mandatory. Do not switch languages under any circumstance.
-Document context: ${document_context || 'Financial loan agreement'}`;
-
-    // Step 4: Send to Groq
     const messagesArray = [
-      { role: 'system', content: systemPrompt },
-      ...history,
+      { role: 'system', content: finalSystemPrompt },
+      ...getHistory(session_id),
       {
         role: 'user',
-        content: `USER QUESTION:\n${message}\n\nFINAL INSTRUCTION:\nRespond ONLY in ${langInstruction}.\nSTRICTLY NO OTHER LANGUAGE.\n\n[After your answer, on a new line add exactly: SUGGESTIONS: <suggestion1> | <suggestion2>]`,
+        content: `USER QUESTION:\n${message}\n\n[After your answer, on a new line add exactly: SUGGESTIONS: <suggestion1> | <suggestion2>]`,
       },
     ];
 
