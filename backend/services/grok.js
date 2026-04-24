@@ -10,7 +10,8 @@ async function callGrok(systemPrompt, userMessage, expectJSON = false) {
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage }
         ],
-        temperature: 0.3
+        temperature: 0.3,
+        response_format: expectJSON ? { type: "json_object" } : undefined
       },
       {
         headers: {
@@ -50,6 +51,7 @@ async function callGrok(systemPrompt, userMessage, expectJSON = false) {
       ? JSON.stringify(errorDetails) 
       : errorDetails;
       
+    console.error(`[Grok] API Error: ${message}`);
     throw new Error(`Grok API Error: ${message}`);
   }
 }

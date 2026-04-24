@@ -34,7 +34,7 @@ export function ShareExport({ agreementTitle = "Loan Agreement Summary", classNa
 
   const handleShare = async (method: string) => {
     const shareData = {
-      title: "SamarthaSign - Agreement Summary",
+      title: "Agreeva - Agreement Summary",
       text: `Check out my simplified agreement summary for: ${agreementTitle}`,
       url: window.location.href,
     }
@@ -63,7 +63,7 @@ export function ShareExport({ agreementTitle = "Loan Agreement Summary", classNa
     // In a real app, this would generate actual PDF/image
     const element = document.createElement("a")
     const content = `
-SamarthaSign - Agreement Summary
+Agreeva - Agreement Summary
 ================================
 
 ${agreementTitle}
@@ -77,7 +77,7 @@ Key Details:
 - Total Payable: Rs. 5,97,852
 
 This summary was simplified by AI for easy understanding.
-Verified and consented on SamarthaSign.
+Verified and consented on Agreeva.
     `
 
     if (format === "txt") {

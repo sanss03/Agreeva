@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils"
 import { Upload, FileText, Volume2, BarChart3, HelpCircle, AlertTriangle, CheckCircle } from "lucide-react"
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 import type { Step } from "@/lib/types"
 
 interface ProgressStepsProps {
@@ -10,24 +12,27 @@ interface ProgressStepsProps {
   hasData: boolean
 }
 
-const steps = [
-  { id: 1, label: "Upload", icon: Upload, shortLabel: "1" },
-  { id: 2, label: "Simplify", icon: FileText, shortLabel: "2" },
-  { id: 3, label: "Listen", icon: Volume2, shortLabel: "3" },
-  { id: 4, label: "Visual", icon: BarChart3, shortLabel: "4" },
-  { id: 5, label: "Quiz", icon: HelpCircle, shortLabel: "5" },
-  { id: 6, label: "Risks", icon: AlertTriangle, shortLabel: "6" },
-  { id: 7, label: "Consent", icon: CheckCircle, shortLabel: "7" },
-]
-
 export function ProgressSteps({ currentStep, onStepClick, hasData }: ProgressStepsProps) {
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
+
+  const steps = [
+    { id: 1, label: t.step_upload, icon: Upload, shortLabel: "1" },
+    { id: 2, label: t.step_simplify, icon: FileText, shortLabel: "2" },
+    { id: 3, label: t.step_listen, icon: Volume2, shortLabel: "3" },
+    { id: 4, label: t.step_visual, icon: BarChart3, shortLabel: "4" },
+    { id: 5, label: t.step_quiz, icon: HelpCircle, shortLabel: "5" },
+    { id: 6, label: t.step_risks, icon: AlertTriangle, shortLabel: "6" },
+    { id: 7, label: t.step_consent, icon: CheckCircle, shortLabel: "7" },
+  ]
   return (
     <div className="w-full max-w-4xl mx-auto">
       {/* Mobile Progress Bar */}
       <div className="md:hidden mb-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-medium text-foreground">
-            Step {currentStep} of 7
+            {t.step_count} {currentStep} {t.step_of} 7
           </span>
           <span className="text-sm text-muted-foreground">
             {steps[currentStep - 1].label}

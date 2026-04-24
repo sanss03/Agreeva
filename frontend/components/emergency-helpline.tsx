@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Phone, X, Shield, HeadphonesIcon, Building2, AlertTriangle, ExternalLink } from "lucide-react"
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 
 const helplines = [
   {
@@ -39,6 +41,9 @@ const helplines = [
 
 export function EmergencyHelpline() {
   const [isOpen, setIsOpen] = useState(false)
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
 
   return (
     <>
@@ -98,9 +103,9 @@ export function EmergencyHelpline() {
                       <Phone className="h-5 w-5 text-indigo-600" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-indigo-900">Emergency Help</h2>
+                      <h2 className="text-lg font-semibold text-indigo-900">{t.emergency_call}</h2>
                       <p className="text-xs text-muted-foreground">
-                        Financial assistance helplines
+                        {t.emergency_title}
                       </p>
                     </div>
                   </div>

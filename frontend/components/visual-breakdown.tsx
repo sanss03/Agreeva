@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { BarChart3, ArrowRight, TrendingUp, Calendar, Wallet, PiggyBank } from "lucide-react"
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AgreementData } from "@/lib/types"
@@ -13,6 +15,9 @@ interface VisualBreakdownProps {
 }
 
 export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
   const [animatedEmi, setAnimatedEmi] = useState(0)
   const [animatedTotal, setAnimatedTotal] = useState(0)
   const [animatedInterest, setAnimatedInterest] = useState(0)
@@ -41,8 +46,8 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
     return () => clearInterval(interval)
   }, [data])
 
-  const principalPercentage = (data.principal / data.totalAmount) * 100
-  const interestPercentage = (data.interestAmount / data.totalAmount) * 100
+  const principalPercentage = data.totalAmount > 0 ? (data.principal / data.totalAmount) * 100 : 0
+  const interestPercentage = data.totalAmount > 0 ? (data.interestAmount / data.totalAmount) * 100 : 0
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -58,13 +63,13 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
       <div className="text-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/10 border border-secondary/20 text-sm text-secondary font-medium">
           <BarChart3 className="w-4 h-4" />
-          Visual Breakdown
+          {t.visual_header}
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-          Your Payment at a Glance
+          {t.visual_title_main}
         </h2>
         <p className="text-muted-foreground">
-          See exactly how much you&apos;ll pay, broken down simply
+          {t.visual_desc}
         </p>
       </div>
 
@@ -79,15 +84,15 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
                 <Wallet className="w-6 h-6 text-white" />
               </div>
               <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                Monthly
+                {t.visual_monthly}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground mb-1">EMI Amount</p>
+            <p className="text-sm text-muted-foreground mb-1">{t.visual_emi_amount}</p>
             <p className="text-3xl md:text-4xl font-bold text-foreground">
               {formatCurrency(animatedEmi)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Pay this amount every month
+              {t.visual_emi_desc}
             </p>
           </CardContent>
         </Card>
@@ -101,15 +106,15 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
                 <PiggyBank className="w-6 h-6 text-white" />
               </div>
               <span className="text-xs font-medium text-muted-foreground bg-muted/50 px-2 py-1 rounded-full">
-                Total
+                {t.visual_total}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground mb-1">Total Payment</p>
+            <p className="text-sm text-muted-foreground mb-1">{t.visual_total_payment}</p>
             <p className="text-3xl md:text-4xl font-bold text-foreground">
               {formatCurrency(animatedTotal)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Total you&apos;ll pay over {data.tenure} months
+              {t.visual_total_desc} {data.tenure} {t.visual_months}
             </p>
           </CardContent>
         </Card>
@@ -126,12 +131,12 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
                 {data.interestRate}% p.a.
               </span>
             </div>
-            <p className="text-sm text-muted-foreground mb-1">Extra Interest</p>
+            <p className="text-sm text-muted-foreground mb-1">{t.visual_extra_interest}</p>
             <p className="text-3xl md:text-4xl font-bold text-destructive">
               {formatCurrency(animatedInterest)}
             </p>
             <p className="text-xs text-muted-foreground mt-2">
-              Extra money to the lender
+              {t.visual_lender_desc}
             </p>
           </CardContent>
         </Card>
@@ -146,13 +151,13 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
               <Calendar className="w-6 h-6 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-sm text-muted-foreground">Loan Duration</p>
+              <p className="text-sm text-muted-foreground">{t.visual_loan_duration}</p>
               <p className="text-2xl font-bold text-foreground">
-                {data.tenure} months ({data.tenure / 12} years)
+                {data.tenure} {t.visual_months} ({data.tenure / 12} {t.visual_years})
               </p>
             </div>
             <div className="text-right">
-              <p className="text-sm text-muted-foreground">End Date</p>
+              <p className="text-sm text-muted-foreground">{t.visual_end_date}</p>
               <p className="text-lg font-semibold text-foreground">
                 {new Date(Date.now() + data.tenure * 30 * 24 * 60 * 60 * 1000).toLocaleDateString("en-IN", {
                   month: "short",
@@ -175,7 +180,7 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
               <BarChart3 className="w-5 h-5 text-white" />
             </div>
-            Payment Breakdown
+            {t.visual_payment_breakdown}
           </CardTitle>
         </CardHeader>
         <CardContent className="relative space-y-6">
@@ -186,7 +191,7 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-foreground font-medium flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-success" />
-                  Principal (What you borrowed)
+                  {t.visual_principal_label}
                 </span>
                 <span className="font-bold text-foreground">{formatCurrency(data.principal)}</span>
               </div>
@@ -206,7 +211,7 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-foreground font-medium flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-destructive" />
-                  Interest (Extra you pay)
+                  {t.visual_interest_label}
                 </span>
                 <span className="font-bold text-destructive">{formatCurrency(data.interestAmount)}</span>
               </div>
@@ -224,25 +229,12 @@ export function VisualBreakdown({ data, onComplete }: VisualBreakdownProps) {
 
           {/* Summary */}
           <div className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/30">
-            <span className="text-muted-foreground">Total Payment</span>
+            <span className="text-muted-foreground">{t.visual_total_payment}</span>
             <span className="text-2xl font-bold text-foreground">{formatCurrency(data.totalAmount)}</span>
           </div>
         </CardContent>
       </Card>
 
-      {/* Continue Button */}
-      <div className="flex justify-center animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500">
-        <Button
-          onClick={onComplete}
-          size="lg"
-          className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
-        >
-          <span className="flex items-center gap-3">
-            Check Your Understanding
-            <ArrowRight className="w-5 h-5" />
-          </span>
-        </Button>
-      </div>
     </div>
   )
 }

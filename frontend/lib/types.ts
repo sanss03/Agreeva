@@ -11,4 +11,5 @@ export interface AgreementData {
   interestAmount: number
   riskLevel: "low" | "medium" | "high"
   risks: { type: string; description: string; severity: "warning" | "danger" }[]
+  visuals?: { label: string; value: string }[]
 }

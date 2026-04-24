@@ -11,7 +11,7 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'SamarthaSign - Accessible Financial Authorization',
+  title: 'Agreeva - Understand Before You Agree',
   description: 'AI-powered financial document simplification for inclusive and verifiable consent. Understand loans, EMI, and insurance agreements in your language.',
   generator: 'v0.app',
   icons: {

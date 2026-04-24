@@ -2,6 +2,8 @@
 
 import { useState } from "react"
 import { HelpCircle, CheckCircle2, XCircle, ArrowRight } from "lucide-react"
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AgreementData } from "@/lib/types"
@@ -20,6 +22,9 @@ interface Question {
 }
 
 export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps) {
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
   const questions: Question[] = [
     {
       id: 1,
@@ -101,17 +106,17 @@ export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps
             ) : (
               <HelpCircle className="w-4 h-4" />
             )}
-            {allCorrect ? "Perfect Score!" : "Good Effort!"}
+            {allCorrect ? t.check_perfect : t.check_good}
           </div>
           <h2 className="text-2xl md:text-3xl font-bold text-foreground">
             {allCorrect
-              ? "You Understand the Agreement!"
-              : `You Got ${correctCount} of ${questions.length} Right`}
+              ? t.check_understand
+              : `${t.check_got} ${correctCount} ${t.check_of} ${questions.length} ${t.check_right}`}
           </h2>
           <p className="text-muted-foreground">
             {allCorrect
-              ? "Great job! You've shown you understand the key terms."
-              : "Don't worry, the important thing is you're learning about your agreement."}
+              ? t.check_great
+              : t.check_worry}
           </p>
         </div>
 
@@ -147,7 +152,7 @@ export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps
             className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
           >
             <span className="flex items-center gap-3">
-              View Risk Warnings
+              {t.check_view_risks}
               <ArrowRight className="w-5 h-5" />
             </span>
           </Button>
@@ -162,13 +167,13 @@ export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps
       <div className="text-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm text-primary font-medium">
           <HelpCircle className="w-4 h-4" />
-          Question {currentQuestion + 1} of {questions.length}
+          {t.check_question} {currentQuestion + 1} {t.check_of} {questions.length}
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-          Quick Understanding Check
+          {t.check_header}
         </h2>
         <p className="text-muted-foreground">
-          Let&apos;s make sure you understand the key points
+          {t.check_desc}
         </p>
       </div>
 
@@ -284,7 +289,7 @@ export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps
             className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
           >
             <span className="flex items-center gap-3">
-              {currentQuestion < questions.length - 1 ? "Next Question" : "See Results"}
+              {currentQuestion < questions.length - 1 ? t.check_next : t.check_results}
               <ArrowRight className="w-5 h-5" />
             </span>
           </Button>

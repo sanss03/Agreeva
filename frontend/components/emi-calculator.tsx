@@ -7,12 +7,17 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import { Calculator, IndianRupee, Percent, Calendar, TrendingUp, PieChart } from "lucide-react"
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 
 interface EMICalculatorProps {
   className?: string
 }
 
 export function EMICalculator({ className }: EMICalculatorProps) {
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
   const [principal, setPrincipal] = useState(500000)
   const [rate, setRate] = useState(12)
   const [tenure, setTenure] = useState(36)
@@ -52,7 +57,7 @@ export function EMICalculator({ className }: EMICalculatorProps) {
         <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10 border-b border-border/50">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Calculator className="h-5 w-5 text-primary" />
-            EMI Calculator
+            {t.calculator_title}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
@@ -61,7 +66,7 @@ export function EMICalculator({ className }: EMICalculatorProps) {
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium flex items-center gap-2">
                 <IndianRupee className="h-4 w-4 text-muted-foreground" />
-                Loan Amount
+                {t.calc_loan_amount}
               </label>
               <span className="text-sm font-semibold text-primary">
                 {formatCurrency(principal)}
@@ -86,7 +91,7 @@ export function EMICalculator({ className }: EMICalculatorProps) {
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium flex items-center gap-2">
                 <Percent className="h-4 w-4 text-muted-foreground" />
-                Interest Rate (p.a.)
+                {t.calc_interest_rate}
               </label>
               <span className="text-sm font-semibold text-primary">{rate}%</span>
             </div>
@@ -109,7 +114,7 @@ export function EMICalculator({ className }: EMICalculatorProps) {
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-muted-foreground" />
-                Loan Tenure
+                {t.calc_loan_tenure}
               </label>
               <span className="text-sm font-semibold text-primary">{tenure} months</span>
             </div>
@@ -136,7 +141,7 @@ export function EMICalculator({ className }: EMICalculatorProps) {
               animate={{ scale: 1 }}
               className="bg-gradient-to-r from-primary to-accent rounded-xl p-4 text-center"
             >
-              <p className="text-sm text-white/80 mb-1">Monthly EMI</p>
+              <p className="text-sm text-white/80 mb-1">{t.calc_monthly_emi}</p>
               <p className="text-3xl font-bold text-white flex items-center justify-center gap-1">
                 <IndianRupee className="h-6 w-6" />
                 {calculations.emi.toLocaleString("en-IN")}
@@ -146,13 +151,13 @@ export function EMICalculator({ className }: EMICalculatorProps) {
             {/* Breakdown */}
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-muted/50 rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Principal</p>
+                <p className="text-xs text-muted-foreground mb-1">{t.calc_principal}</p>
                 <p className="text-lg font-semibold text-foreground">
                   {formatCurrency(principal)}
                 </p>
               </div>
               <div className="bg-destructive/10 rounded-lg p-3 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Total Interest</p>
+                <p className="text-xs text-muted-foreground mb-1">{t.calc_total_interest}</p>
                 <p className="text-lg font-semibold text-destructive">
                   {formatCurrency(calculations.totalInterest)}
                 </p>
@@ -164,7 +169,7 @@ export function EMICalculator({ className }: EMICalculatorProps) {
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground flex items-center gap-1">
                   <PieChart className="h-4 w-4" />
-                  Total Payable
+                  {t.calc_total_payable}
                 </span>
                 <span className="font-semibold">
                   {formatCurrency(calculations.totalAmount)}
@@ -187,11 +192,11 @@ export function EMICalculator({ className }: EMICalculatorProps) {
               <div className="flex justify-between text-xs">
                 <span className="flex items-center gap-1">
                   <span className="h-2 w-2 rounded-full bg-primary" />
-                  Principal ({calculations.principalPercent}%)
+                  {t.calc_principal} ({calculations.principalPercent}%)
                 </span>
                 <span className="flex items-center gap-1">
                   <span className="h-2 w-2 rounded-full bg-destructive/60" />
-                  Interest ({calculations.interestPercent}%)
+                  {t.calc_total_interest} ({calculations.interestPercent}%)
                 </span>
               </div>
             </div>

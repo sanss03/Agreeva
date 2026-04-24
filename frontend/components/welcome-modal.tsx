@@ -15,6 +15,8 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react"
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 
 const features = [
   {
@@ -58,6 +60,9 @@ const features = [
 export function WelcomeModal() {
   const [isOpen, setIsOpen] = useState(false)
   const [currentSlide, setCurrentSlide] = useState(0)
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
 
   useEffect(() => {
     const hasSeenWelcome = localStorage.getItem("samarthasign-welcome-seen")
@@ -97,12 +102,10 @@ export function WelcomeModal() {
         </div>
       </div>
       <h2 className="text-2xl font-bold mb-2">
-        Welcome to <span className="text-primary">SamarthaSign</span>
+        {t.modal_welcome}
       </h2>
       <p className="text-muted-foreground mb-6">
-        Understand your financial agreements before signing.
-        <br />
-        Made simple for everyone.
+        {t.modal_desc}
       </p>
       <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-xl p-4 text-left">
         <p className="text-sm font-medium mb-2 flex items-center gap-2">
@@ -245,7 +248,7 @@ export function WelcomeModal() {
                 onClick={handleNext}
                 className="bg-gradient-to-r from-primary to-accent hover:opacity-90 gap-1"
               >
-                {currentSlide === 2 ? "Get Started" : "Next"}
+                {currentSlide === 2 ? t.button_get_started : "Next"}
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>

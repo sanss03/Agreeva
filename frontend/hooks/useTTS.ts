@@ -9,27 +9,48 @@ export function useTTS() {
     // Stop any current speech
     window.speechSynthesis.cancel()
     
-    const langMap: Record<string, string> = {
-      en: 'en-IN',
-      hi: 'hi-IN', 
-      mr: 'mr-IN'
-    }
-    
-    // Clean text - remove special chars but keep meaningful content
+    // Clean text - remove special chars
     const cleanText = text
       .replace(/[*#]/g, '')
       .replace(/\s+/g, ' ')
       .trim()
-      .slice(0, 500) // max 500 chars per speak call
     
-    const utterance = new SpeechSynthesisUtterance(cleanText)
-    utterance.lang = langMap[language] || 'en-IN'
-    utterance.rate = 0.85  // slightly slow for clarity
-    utterance.pitch = 1
-    utterance.volume = 1
+    const synth = window.speechSynthesis;
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    const voices = synth.getVoices();
+
+    const normalizedLang = language.toLowerCase();
+    let selectedVoice;
+
+    if (normalizedLang === "hindi" || normalizedLang === "hi") {
+      selectedVoice = voices.find(v => v.lang.includes("hi"));
+    } else if (normalizedLang === "marathi" || normalizedLang === "mr") {
+      selectedVoice =
+        voices.find(v => v.lang.includes("mr")) ||
+        voices.find(v => v.lang.includes("hi")); // fallback to hindi for marathi
+    } else {
+      selectedVoice = voices.find(v => v.lang.includes("en"));
+    }
+
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      utterance.lang = selectedVoice.lang;
+    } else {
+      // Fallback to simple lang code if no explicit voice found
+      const langMap: Record<string, string> = {
+        english: "en-IN", en: "en-IN",
+        hindi: "hi-IN", hi: "hi-IN",
+        marathi: "hi-IN", mr: "hi-IN" // Fallback to Hindi-India for Marathi if no voice found
+      }
+      utterance.lang = langMap[normalizedLang] || "en-IN";
+    }
+
+    utterance.rate = 0.9;  // Slightly slow for better understanding
+    utterance.pitch = 1;
+    utterance.volume = 1;
     
-    utteranceRef.current = utterance
-    window.speechSynthesis.speak(utterance)
+    utteranceRef.current = utterance;
+    synth.speak(utterance);
   }, [])
 
   const stop = useCallback(() => {
@@ -43,6 +64,20 @@ export function useTTS() {
       return window.speechSynthesis.speaking
     }
     return false
+  }, [])
+
+  // Initialize voices on browsers where they load asynchronously
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const loadVoices = () => {
+        window.speechSynthesis.getVoices();
+      };
+      
+      loadVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
   }, [])
 
   // Cleanup on unmount

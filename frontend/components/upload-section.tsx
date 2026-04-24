@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 
 interface UploadSectionProps {
   onUpload: (text: string) => void
@@ -42,6 +44,9 @@ This Personal Loan Agreement is made between ABC Finance Ltd. ("Lender") and the
 By signing below, the borrower acknowledges understanding all terms and conditions.`
 
 export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
   const [text, setText] = useState("")
   const [isDragging, setIsDragging] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
@@ -99,13 +104,13 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
       <div className="text-center space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
         <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground tracking-tight text-balance">
-          Understand Your Agreement
+          {t.upload_title}
           <span className="block text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary">
-            Before You Sign
+            {t.upload_subtitle}
           </span>
         </h1>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto text-pretty">
-          Upload any financial document and our AI will explain it in simple words you can understand
+          {t.upload_description}
         </p>
       </div>
 
@@ -152,7 +157,7 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
                 </div>
                 <div className="space-y-1">
                   <p className="text-foreground font-semibold">
-                    {isExtracting ? "Extracting text..." : "Upload File"}
+                    {isExtracting ? "Extracting text..." : t.upload_file}
                   </p>
                   <p className="text-muted-foreground text-xs">
                     PDF, Word, or Image
@@ -182,7 +187,7 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
                 </div>
                 <div className="space-y-1">
                   <p className="text-foreground font-semibold">
-                    Scan with Camera
+                    {t.upload_camera}
                   </p>
                   <p className="text-muted-foreground text-xs">
                     Take a photo
@@ -195,7 +200,7 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
           {/* Divider */}
           <div className="flex items-center gap-4">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
-            <span className="text-xs text-muted-foreground font-medium">OR PASTE TEXT</span>
+            <span className="text-xs text-muted-foreground font-medium">{t.upload_paste}</span>
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
           </div>
 
@@ -205,7 +210,7 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
               value={text}
               onChange={(e) => setText(e.target.value)}
               disabled={isExtracting}
-              placeholder="Paste your loan agreement, insurance policy, or any financial document here..."
+              placeholder={t.upload_placeholder}
               className="w-full h-48 md:h-56 p-4 bg-muted/30 border border-border/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-foreground placeholder:text-muted-foreground transition-all duration-300 disabled:opacity-50"
             />
             <div className="flex items-center justify-between">
@@ -215,7 +220,7 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
                 className="text-sm text-primary hover:text-primary/80 font-medium flex items-center gap-2 transition-colors disabled:opacity-50"
               >
                 <FileText className="w-4 h-4" />
-                Load sample agreement
+                {t.upload_sample}
               </button>
               <span className="text-xs text-muted-foreground">
                 {text.length} characters
@@ -233,12 +238,12 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
             {isProcessing ? (
               <span className="flex items-center gap-3">
                 <Spinner className="w-5 h-5" />
-                AI is analyzing...
+                {t.upload_analyzing}
               </span>
             ) : (
               <span className="flex items-center gap-3">
                 <Sparkles className="w-5 h-5" />
-                Simplify with AI
+                {t.upload_simplify_btn}
                 <ArrowRight className="w-5 h-5" />
               </span>
             )}
@@ -248,7 +253,7 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
 
       {/* Helper Text */}
       <p className="text-center text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-        Your documents are processed securely and never stored
+        {t.footer_secure}
       </p>
     </div>
   )

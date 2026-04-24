@@ -19,14 +19,9 @@ const GREETINGS = ['hi', 'hey', 'hello', 'hii', 'helo', 'namaste', 'नमस्
 
 /** Detect language using keywords */
 function detectLanguage(text) {
-  const devanagariPattern = /[\u0900-\u097F]/;
-  if (devanagariPattern.test(text)) {
-    // Marathi specific words
-    const marathiWords = ['आहे', 'नाही', 'काय', 'कसे', 'मला', 'तुम्ही', 'हे', 'ते'];
-    const isMarathi = marathiWords.some(w => text.includes(w));
-    return isMarathi ? 'marathi' : 'hindi';
-  }
-  return 'english';
+  if (text.includes("क्या") || text.includes("है")) return "hindi";
+  if (text.includes("आहे") || text.includes("मला")) return "marathi";
+  return "english";
 }
 
 /** Check if response matches target language script */
@@ -146,8 +141,8 @@ router.post('/', async (req, res) => {
     }
 
     // Step 1: Language Detection
-    const detectedLang = detectLanguage(question);
-    console.log(`[Chat] Detected Language: ${detectedLang}`);
+    const detectedLang = req.body.language || detectLanguage(question);
+    console.log(`[Chat] Language: ${detectedLang}`);
 
     // Step 2: Greeting check
     if (isGreeting(question)) {
@@ -165,14 +160,14 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const summaryText = resolveContext(question) || 'No summary available.';
+    const summaryText = req.body.context || resolveContext(question) || 'No summary available.';
     const finalSystemPrompt = `${SYSTEM_PROMPT}\n\nSummary:\n${summaryText}`;
 
     const messagesArray = [
       { role: 'system', content: finalSystemPrompt },
       {
         role: 'user',
-        content: `USER QUESTION:\n${question}\n\n[After your answer, on a new line add exactly: SUGGESTIONS: <suggestion1> | <suggestion2>]`,
+        content: `Respond ONLY in ${detectedLang}. STRICT: Do not use any other language.\n\nUSER QUESTION:\n${question}\n\n[After your answer, on a new line add exactly: SUGGESTIONS: <suggestion1> | <suggestion2>]`,
       },
     ];
 
@@ -185,7 +180,7 @@ router.post('/', async (req, res) => {
       messagesArray.push({ role: 'assistant', content: result.answer });
       messagesArray.push({ 
         role: 'user', 
-        content: `STRICT WARNING: Your previous answer was in wrong language.\nRespond ONLY in ${detectedLang}. No exceptions.` 
+        content: `STRICT WARNING: Your previous answer was in the wrong language.\nYou MUST respond ONLY in ${detectedLang}. No exceptions. STRICT: Do not use any other language.` 
       });
       result = await callGroqWithSuggestions(messagesArray);
     }
@@ -241,7 +236,7 @@ router.post('/message', async (req, res) => {
       ...getHistory(session_id),
       {
         role: 'user',
-        content: `USER QUESTION:\n${message}\n\n[After your answer, on a new line add exactly: SUGGESTIONS: <suggestion1> | <suggestion2>]`,
+        content: `Respond ONLY in ${detectedLang}. STRICT: Do not use any other language.\n\nUSER QUESTION:\n${message}\n\n[After your answer, on a new line add exactly: SUGGESTIONS: <suggestion1> | <suggestion2>]`,
       },
     ];
 
@@ -250,7 +245,7 @@ router.post('/message', async (req, res) => {
     // Step 6: Safety Fallback
     if (!isLanguageCorrect(result.answer, detectedLang)) {
       console.log(`[Chat/Message] Language mismatch detected. Retrying...`);
-      messagesArray.push({ role: 'user', content: `STRICT WARNING: Your previous answer was in wrong language.\nRespond ONLY in ${detectedLang}. No exceptions.` });
+      messagesArray.push({ role: 'user', content: `STRICT WARNING: Your previous answer was in the wrong language.\nYou MUST respond ONLY in ${detectedLang}. No exceptions. STRICT: Do not use any other language.` });
       result = await callGroqWithSuggestions(messagesArray);
     }
 

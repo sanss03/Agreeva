@@ -9,7 +9,7 @@ import { TrustBadges } from "@/components/trust-badges"
 import { Chatbot } from "@/components/chatbot"
 import { EMICalculator } from "@/components/emi-calculator"
 import { AccessibilityPanel } from "@/components/accessibility-panel"
-import { UnderstandingCheck } from "@/components/understanding-check"
+import { VisualBreakdown } from "@/components/visual-breakdown"
 
 import { EmergencyHelpline } from "@/components/emergency-helpline"
 import { ShareExport } from "@/components/share-export"
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 import { useLocale } from "next-intl"
 
 import { Step, AgreementData } from "@/lib/types"
+import { translations, getLanguageKey } from "@/lib/translations"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
@@ -63,16 +64,24 @@ const sampleAgreementData: AgreementData = {
       severity: "danger",
     },
   ],
+  visuals: [
+    { label: "Loan Amount", value: "₹1,00,000" },
+    { label: "Monthly EMI", value: "₹1,800/mo" },
+    { label: "Total Payable", value: "₹1,29,600" },
+    { label: "Duration", value: "6 years" },
+  ],
 }
 
 export default function Home() {
   const locale = useLocale();
+  const langKey = getLanguageKey(locale);
+  const t = translations[langKey];
+  
   const [agreementData, setAgreementData] = useState<AgreementData | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [activeSection, setActiveSection] = useState("hero")
   const [showVoiceExplanation, setShowVoiceExplanation] = useState(false)
-  const [showQuiz, setShowQuiz] = useState(false)
-  const [quizPassed, setQuizPassed] = useState(false)
+  const [showVisualBreakdown, setShowVisualBreakdown] = useState(false)
   const [fontSize, setFontSize] = useState(100)
   const [highContrast, setHighContrast] = useState(false)
   const [reduceMotion, setReduceMotion] = useState(false)
@@ -84,16 +93,14 @@ export default function Home() {
   const consentRef = useRef<HTMLDivElement>(null)
   const calculatorRef = useRef<HTMLDivElement>(null)
   const voiceRef = useRef<HTMLDivElement>(null)
-  const quizRef = useRef<HTMLDivElement>(null)
 
   const sections = [
-    { id: "hero", label: "Home", ref: heroRef },
-    { id: "upload", label: "Upload", ref: uploadRef },
-    { id: "simplify", label: "Simplify", ref: simplifyRef },
-    { id: "voice", label: "Voice", ref: voiceRef, hidden: !showVoiceExplanation },
-    { id: "quiz", label: "Check", ref: quizRef, hidden: !showQuiz },
-    { id: "consent", label: "Consent", ref: consentRef },
-    { id: "calculator", label: "Calculator", ref: calculatorRef },
+    { id: "hero", label: t.nav_home, ref: heroRef },
+    { id: "upload", label: t.nav_upload, ref: uploadRef },
+    { id: "simplify", label: t.nav_simplify, ref: simplifyRef },
+    { id: "voice", label: t.nav_voice, ref: voiceRef, hidden: !showVoiceExplanation },
+    { id: "consent", label: t.nav_consent, ref: consentRef },
+    { id: "calculator", label: t.nav_calculator, ref: calculatorRef },
   ]
 
   // Intersection observer for active section tracking
@@ -127,10 +134,6 @@ export default function Home() {
       voiceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
       return
     }
-    if (id === "quiz") {
-      quizRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-      return
-    }
 
     const section = sections.find((s) => s.id === id)
     if (section?.ref.current) {
@@ -155,7 +158,10 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, language: locale })
       })
-      if (!response.ok) throw new Error("Analysis failed")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Analysis failed")
+      }
       const data = await response.json()
       setAgreementData(data)
       setTimeout(() => scrollToSection("simplify"), 500)
@@ -181,7 +187,7 @@ export default function Home() {
 
       <div className="relative z-10">
         <Header>
-          {agreementData && <ShareExport agreementTitle="Loan Agreement" />}
+          {agreementData && <ShareExport agreementTitle={t.loan_agreement_title} />}
         </Header>
 
         {/* Section Navigation - Sticky */}
@@ -223,45 +229,54 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <SectionHeader
               number={1}
-              title="AI Simplified Summary"
-              subtitle="Your agreement explained in simple, easy-to-understand language"
+              title={t.summary_title}
+              subtitle={t.summary_subtitle}
             />
             <div className="max-w-4xl mx-auto">
               {agreementData ? (
               <>
-                <SimplifiedContent data={agreementData} onComplete={handleListen} />
+                <SimplifiedContent
+                  data={agreementData}
+                  onComplete={() => {
+                    const hasVisuals = agreementData.visuals && agreementData.visuals.length > 0
+                    if (hasVisuals) {
+                      setShowVisualBreakdown(true)
+                      setTimeout(() => {
+                        document.getElementById("visual-breakdown-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                      }, 120)
+                    } else {
+                      handleListen()
+                    }
+                  }}
+                />
+
+                {agreementData.visuals && agreementData.visuals.length > 0 && (
+                  <div id="visual-breakdown-section" className="pt-16">
+                    <SectionHeader
+                      number={2}
+                      title={t.visual_title}
+                      subtitle={t.visual_subtitle}
+                    />
+                    <div className="max-w-4xl mx-auto mt-8">
+                      <VisualBreakdown
+                        data={agreementData}
+                        onComplete={handleListen}
+                      />
+                    </div>
+                  </div>
+                )}
+
                 {showVoiceExplanation && (
                   <div ref={voiceRef} id="voice" className="pt-16">
                     <SectionHeader
-                      number={1}
-                      title="Voice Explanation"
-                      subtitle="Listen to the simplified agreement in your preferred language"
+                      number={3}
+                      title={t.voice_title}
+                      subtitle={t.voice_subtitle}
                     />
                     <div className="max-w-4xl mx-auto mt-8">
                       <VoiceExplanation 
                         data={agreementData} 
                         onComplete={() => {
-                          setShowQuiz(true)
-                          setTimeout(() => scrollToSection("quiz"), 120)
-                        }} 
-                      />
-                    </div>
-                  </div>
-                )}
-                
-                {showQuiz && (
-                  <div ref={quizRef} id="quiz" className="pt-16">
-                    <SectionHeader
-                      number={2}
-                      title="Understanding Check"
-                      subtitle="Let's make sure everything is clear before you sign"
-                    />
-                    <div className="max-w-4xl mx-auto mt-8">
-                      <UnderstandingCheck 
-                        data={agreementData} 
-                        onComplete={(results) => {
-                          const passed = results.filter(r => r).length >= 2 // Pass if 2/3 correct
-                          setQuizPassed(passed)
                           scrollToSection("consent")
                         }} 
                       />
@@ -270,7 +285,7 @@ export default function Home() {
                 )}
               </>
             ) : (
-                <LockedPlaceholder message="Upload a document first to see the simplified summary" />
+                <LockedPlaceholder message={t.placeholder_upload} />
               )}
             </div>
           </div>
@@ -289,18 +304,18 @@ export default function Home() {
         >
           <div className="container mx-auto px-4">
             <SectionHeader
-              number={2}
-              title="Verified Consent"
-              subtitle="Review everything and give your informed approval"
+              number={4}
+              title={t.consent_title}
+              subtitle={t.consent_subtitle}
             />
             <div className="max-w-4xl mx-auto">
               {agreementData ? (
                 <ConsentScreen
                   data={agreementData}
-                  quizPassed={quizPassed}
+                  quizPassed={true}
                 />
               ) : (
-                <LockedPlaceholder message="Upload a document first to provide your consent" />
+                <LockedPlaceholder message={t.placeholder_consent} />
               )}
             </div>
           </div>
@@ -317,8 +332,8 @@ export default function Home() {
           <div className="container mx-auto px-4">
             <SectionHeader
               number={0}
-              title="EMI Calculator"
-              subtitle="Calculate your monthly payments for any loan amount"
+              title={t.calculator_title}
+              subtitle={t.calculator_subtitle}
               isBonus
             />
             <div className="max-w-2xl mx-auto">
@@ -364,12 +379,16 @@ function SectionHeader({
   subtitle: string
   isBonus?: boolean
 }) {
+  const locale = useLocale();
+  const langKey = getLanguageKey(locale);
+  const t = translations[langKey];
+
   return (
     <div className="text-center mb-12 md:mb-16">
       <div className="inline-flex items-center gap-2 mb-4">
         {isBonus ? (
           <span className="px-3 py-1 rounded-full bg-gradient-to-r from-accent to-primary text-xs font-semibold text-accent-foreground">
-            BONUS TOOL
+            {t.bonus_tool}
           </span>
         ) : (
           <span className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold">

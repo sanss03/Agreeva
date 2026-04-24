@@ -100,14 +100,45 @@ async function handleSimplifyRequest(req, res) {
     parsedData.interestAmount = interestAmount;
 
     // Save for chatbot context
-    const summaryString = parsedData.simplifiedPoints.join("\n");
+    const points = Array.isArray(parsedData.simplifiedPoints) ? parsedData.simplifiedPoints : [];
+    const summaryString = points.join("\n");
     setSimplifiedContext(summaryString);
+
+    // Build visual breakdown (3–5 key financial items)
+    const visuals = [];
+    if (p > 0) {
+      visuals.push({ label: "Loan Amount", value: `₹${p.toLocaleString('en-IN')}` });
+    }
+    if (r > 0) {
+      visuals.push({ label: "Interest Rate", value: `${r}% p.a.` });
+    }
+    if (n > 0) {
+      const years = Math.floor(n / 12);
+      const months = n % 12;
+      const durationStr = years > 0
+        ? (months > 0 ? `${years} yr ${months} mo` : `${years} yr`)
+        : `${months} mo`;
+      visuals.push({ label: "Duration", value: durationStr });
+    }
+    if (emi > 0) {
+      visuals.push({ label: "EMI", value: `₹${Math.round(emi).toLocaleString('en-IN')}/mo` });
+    }
+    if (totalAmount > 0) {
+      visuals.push({ label: "Total Payable", value: `₹${Math.round(totalAmount).toLocaleString('en-IN')}` });
+    }
+    parsedData.visuals = visuals;
 
     return res.json(parsedData);
 
   } catch (error) {
     console.error("Simplify handler error:", error);
-    return res.status(500).json({ error: "Failed to analyze document" });
+    let errorMessage = "Failed to analyze document. Please try again with a clearer document.";
+    if (error.message.includes("Grok API Error:")) {
+      errorMessage = `AI Analysis Error: ${error.message.split('Grok API Error:')[1].trim()}`;
+    } else if (error.message.includes("Grok API Error")) {
+      errorMessage = `AI Analysis Error: ${error.message}`;
+    }
+    return res.status(500).json({ error: errorMessage });
   }
 }
 

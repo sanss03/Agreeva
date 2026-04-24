@@ -4,6 +4,8 @@ import { useState, useEffect } from "react"
 import { AlertTriangle, ShieldAlert, ArrowRight, TrendingUp, Clock, Banknote, Home } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 import type { AgreementData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { SpeakButton } from '@/components/ui/speak-button'
@@ -21,6 +23,9 @@ const riskIcons: Record<string, React.ReactNode> = {
 }
 
 export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
   const [riskMeterValue, setRiskMeterValue] = useState(0)
   const [visibleRisks, setVisibleRisks] = useState<number[]>([])
 
@@ -61,9 +66,9 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
   }
 
   const getRiskLabel = (value: number) => {
-    if (value < 35) return { text: "Low Risk", color: "text-success" }
-    if (value < 65) return { text: "Medium Risk", color: "text-warning" }
-    return { text: "High Risk", color: "text-destructive" }
+    if (value < 35) return { text: t.risk_low, color: "text-success" }
+    if (value < 65) return { text: t.risk_medium, color: "text-warning" }
+    return { text: t.risk_high, color: "text-destructive" }
   }
 
   const riskLabel = getRiskLabel(riskMeterValue)
@@ -74,13 +79,13 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
       <div className="text-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-destructive/10 border border-destructive/20 text-sm text-destructive font-medium">
           <ShieldAlert className="w-4 h-4" />
-          Risk Assessment
+          {t.risk_header}
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-          Important Warnings
+          {t.risk_title_main}
         </h2>
         <p className="text-muted-foreground">
-          Please review these risks carefully before proceeding
+          {t.risk_desc}
         </p>
       </div>
 
@@ -92,7 +97,7 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-destructive to-warning flex items-center justify-center">
               <AlertTriangle className="w-5 h-5 text-white" />
             </div>
-            Overall Risk Level
+            {t.risk_level_title}
           </CardTitle>
         </CardHeader>
         <CardContent className="relative space-y-6">
@@ -143,15 +148,15 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
           <div className="flex items-center justify-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-success" />
-              <span className="text-muted-foreground">Low</span>
+              <span className="text-muted-foreground">{t.risk_low}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-warning" />
-              <span className="text-muted-foreground">Medium</span>
+              <span className="text-muted-foreground">{t.risk_medium}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-destructive" />
-              <span className="text-muted-foreground">High</span>
+              <span className="text-muted-foreground">{t.risk_high}</span>
             </div>
           </div>
         </CardContent>
@@ -199,7 +204,7 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
                             : "bg-warning/20 text-warning"
                         )}
                       >
-                        {isDanger ? "HIGH" : "MEDIUM"}
+                        {isDanger ? t.risk_high : t.risk_medium}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
@@ -219,7 +224,7 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
         <CardContent className="relative p-6 text-center">
           <p className="text-muted-foreground mb-4">
-            By continuing, you acknowledge that you have reviewed and understood all the risks associated with this agreement.
+            {t.risk_acknowledge}
           </p>
           <Button
             onClick={onComplete}
@@ -227,7 +232,7 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
             className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
           >
             <span className="flex items-center gap-3">
-              I Understand the Risks
+              {t.risk_btn}
               <ArrowRight className="w-5 h-5" />
             </span>
           </Button>

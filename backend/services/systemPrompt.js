@@ -18,13 +18,9 @@ You MUST answer questions ONLY using the given summary.
 LANGUAGE RULE
 --------------------------------------
 
-You MUST respond in the SAME language as the user's question.
-
-- English → English
-- Hindi → Hindi
-- Marathi → Marathi
-
+You MUST respond ONLY in the same language as the user input.
 Do NOT translate or mix languages.
+
 
 --------------------------------------
 RESPONSE FORMAT

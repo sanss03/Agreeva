@@ -21,6 +21,8 @@ import {
 } from "lucide-react"
 import { SpeakButton } from "@/components/ui/speak-button"
 import { useTTS } from "@/hooks/useTTS"
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 
 interface Message {
   id: string
@@ -46,6 +48,9 @@ interface ChatbotProps {
 
 export function Chatbot({ documentContext }: ChatbotProps) {
   const { speak } = useTTS()
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -79,9 +84,10 @@ export function Chatbot({ documentContext }: ChatbotProps) {
 
 
   const detectLanguage = (text: string) => {
-    if (text.includes("क्या") || text.includes("है") || text.includes("क्यों")) return "hi";
-    if (text.includes("आहे") || text.includes("का") || text.includes("मला")) return "mr";
-    return "en";
+    const t = text.toLowerCase();
+    if (t.includes("क्या") || t.includes("है")) return "hindi";
+    if (t.includes("आहे") || t.includes("मला")) return "marathi";
+    return "english";
   };
 
 
@@ -132,6 +138,7 @@ export function Chatbot({ documentContext }: ChatbotProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: messageText,
+          context: documentContext,
           language: detectLanguage(messageText),
         })
       })
@@ -241,7 +248,7 @@ export function Chatbot({ documentContext }: ChatbotProps) {
                   <Bot className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">Financial Assistant</h3>
+                  <h3 className="font-semibold text-white">{t.chatbot}</h3>
                   <p className="text-xs text-white/80 flex items-center gap-1">
                     <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
                     Always here to help
@@ -298,7 +305,7 @@ export function Chatbot({ documentContext }: ChatbotProps) {
                       {message.role === "assistant" && (
                         <SpeakButton 
                           text={message.content} 
-                          language={detectLanguage(message.content)}
+                          language={locale}
                           className="mt-1"
                         />
                       )}

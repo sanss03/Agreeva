@@ -2,30 +2,36 @@
 
 import { Shield, Lock, Sparkles, Eye } from "lucide-react"
 
-const badges = [
-  {
-    icon: Sparkles,
-    label: "AI Verified",
-    description: "Powered by advanced AI",
-  },
-  {
-    icon: Lock,
-    label: "256-bit Encrypted",
-    description: "Bank-level security",
-  },
-  {
-    icon: Shield,
-    label: "Privacy First",
-    description: "Your data stays private",
-  },
-  {
-    icon: Eye,
-    label: "Transparent",
-    description: "No hidden fees",
-  },
-]
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
 
 export function TrustBadges() {
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
+
+  const badges = [
+    {
+      icon: Sparkles,
+      label: "AI Verified",
+      description: "Powered by advanced AI",
+    },
+    {
+      icon: Lock,
+      label: t.badge_secured,
+      description: "Bank-level security",
+    },
+    {
+      icon: Shield,
+      label: t.badge_private,
+      description: "Your data stays private",
+    },
+    {
+      icon: Eye,
+      label: "Transparent",
+      description: "No hidden fees",
+    },
+  ]
   return (
     <div className="mt-16 mb-8 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-700">
       <div className="max-w-4xl mx-auto">
@@ -33,7 +39,7 @@ export function TrustBadges() {
         <div className="flex items-center gap-4 mb-8">
           <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
           <span className="text-xs text-muted-foreground font-medium tracking-wider uppercase">
-            Trusted by 10,000+ users
+            {t.badge_title}
           </span>
           <div className="flex-1 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
         </div>
@@ -62,7 +68,7 @@ export function TrustBadges() {
 
         {/* Footer Text */}
         <p className="text-center text-xs text-muted-foreground mt-8">
-          SamarthaSign is built with ❤️ for financial inclusion • Made for everyone, everywhere
+          Agreeva is built with ❤️ for financial inclusion • Made for everyone, everywhere
         </p>
       </div>
     </div>

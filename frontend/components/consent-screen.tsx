@@ -8,12 +8,18 @@ import { Checkbox } from "@/components/ui/checkbox"
 import type { AgreementData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
+import { useLocale } from "next-intl"
+import { translations, getLanguageKey } from "@/lib/translations"
+
 interface ConsentScreenProps {
   data: AgreementData
   quizPassed: boolean
 }
 
 export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
   const [consent1, setConsent1] = useState(false)
   const [consent2, setConsent2] = useState(false)
   const [consent3, setConsent3] = useState(false)
@@ -85,10 +91,10 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
             </div>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            Consent Verified!
+            {t.consent_verified_title}
           </h2>
           <p className="text-muted-foreground text-lg max-w-md mx-auto">
-            Your informed consent has been recorded securely. You can now proceed with the agreement.
+            {t.consent_verified_desc}
           </p>
         </div>
 
@@ -100,16 +106,16 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
                   <FileCheck className="w-6 h-6 text-success" />
                 </div>
                 <div>
-                  <p className="font-semibold text-foreground">Consent ID</p>
+                  <p className="font-semibold text-foreground">{t.consent_id}</p>
                   <p className="text-sm text-muted-foreground font-mono">
                     SS-{Date.now().toString(36).toUpperCase()}
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="text-success font-bold text-sm">Consent Verified ✅</p>
+                <p className="text-success font-bold text-sm">{t.consent_verified_badge}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  Verified on: {new Date().toLocaleString()}
+                  {t.verified_on}: {new Date().toLocaleString()}
                 </p>
               </div>
             </div>
@@ -119,16 +125,16 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
         <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
           <Card className="border-border/50 bg-card/50">
             <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">Verified By</p>
+              <p className="text-sm text-muted-foreground">{t.verified_by}</p>
               <p className="font-semibold text-foreground flex items-center justify-center gap-2">
                 <Sparkles className="w-4 h-4 text-primary" />
-                SamarthaSign AI
+                Agreeva AI
               </p>
             </CardContent>
           </Card>
           <Card className="border-border/50 bg-card/50">
             <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">Date & Time</p>
+              <p className="text-sm text-muted-foreground">{t.date_time}</p>
               <p className="font-semibold text-foreground">
                 {new Date().toLocaleDateString("en-IN", {
                   day: "numeric",
@@ -149,13 +155,13 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
       <div className="text-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 border border-success/20 text-sm text-success font-medium">
           <Shield className="w-4 h-4" />
-          Final Step
+          {t.final_step}
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-          Verified Consent
+          {t.consent_title}
         </h2>
         <p className="text-muted-foreground">
-          Review the summary and confirm your understanding
+          {t.consent_subtitle}
         </p>
       </div>
 
@@ -167,25 +173,25 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
               <FileCheck className="w-5 h-5 text-white" />
             </div>
-            Agreement Summary
+            {t.agreement_summary}
           </CardTitle>
         </CardHeader>
         <CardContent className="relative">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="p-4 rounded-xl bg-muted/30 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Loan Amount</p>
+              <p className="text-xs text-muted-foreground mb-1">{t.loan_amount}</p>
               <p className="text-lg font-bold text-foreground">{formatCurrency(data.principal)}</p>
             </div>
             <div className="p-4 rounded-xl bg-muted/30 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Monthly EMI</p>
+              <p className="text-xs text-muted-foreground mb-1">{t.monthly_emi}</p>
               <p className="text-lg font-bold text-foreground">{formatCurrency(data.emi)}</p>
             </div>
             <div className="p-4 rounded-xl bg-muted/30 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Interest Rate</p>
+              <p className="text-xs text-muted-foreground mb-1">{t.interest_rate}</p>
               <p className="text-lg font-bold text-foreground">{data.interestRate}%</p>
             </div>
             <div className="p-4 rounded-xl bg-muted/30 text-center">
-              <p className="text-xs text-muted-foreground mb-1">Total Payment</p>
+              <p className="text-xs text-muted-foreground mb-1">{t.total_payment}</p>
               <p className="text-lg font-bold text-destructive">{formatCurrency(data.totalAmount)}</p>
             </div>
           </div>
@@ -215,12 +221,12 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
             </div>
             <div>
               <p className={cn("font-bold", quizPassed ? "text-success" : "text-warning")}>
-                {quizPassed ? "Understanding Verified" : "Partial Understanding"}
+                {quizPassed ? t.understanding_verified : t.partial_understanding}
               </p>
               <p className="text-sm text-muted-foreground">
                 {quizPassed
-                  ? "You answered all questions correctly"
-                  : "You may want to review the agreement again"}
+                  ? t.quiz_all_correct
+                  : t.quiz_review_needed}
               </p>
             </div>
           </div>
@@ -244,9 +250,9 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
               className="mt-1"
             />
             <div>
-              <p className="font-medium text-foreground">I have read and understood the agreement</p>
+              <p className="font-medium text-foreground">{t.consent_check_1}</p>
               <p className="text-sm text-muted-foreground">
-                Including all terms, conditions, and my obligations
+                {t.consent_check_1_sub}
               </p>
             </div>
           </div>
@@ -264,9 +270,9 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
               className="mt-1"
             />
             <div>
-              <p className="font-medium text-foreground">I understand the financial commitments</p>
+              <p className="font-medium text-foreground">{t.consent_check_2}</p>
               <p className="text-sm text-muted-foreground">
-                Including EMI of {formatCurrency(data.emi)}/month for {data.tenure} months
+                {t.consent_check_2_sub.replace("{amount}", formatCurrency(data.emi)).replace("{tenure}", data.tenure.toString())}
               </p>
             </div>
           </div>
@@ -284,9 +290,9 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
               className="mt-1"
             />
             <div>
-              <p className="font-medium text-foreground">I acknowledge all risks and penalties</p>
+              <p className="font-medium text-foreground">{t.consent_check_3}</p>
               <p className="text-sm text-muted-foreground">
-                Including late fees and consequences of missed payments
+                {t.consent_check_3_sub}
               </p>
             </div>
           </div>
@@ -302,9 +308,9 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
               <Mic className="w-5 h-5 text-white" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">Voice Confirmation (Optional)</p>
+              <p className="font-semibold text-foreground">{t.voice_confirm_title}</p>
               <p className="text-sm text-muted-foreground">
-                Say &ldquo;I agree to this loan&rdquo; for additional verification
+                {t.voice_confirm_sub}
               </p>
             </div>
           </div>
@@ -312,7 +318,7 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
           {voiceConfirmed ? (
             <div className="flex items-center gap-3 p-4 rounded-xl bg-success/10 border border-success/30">
               <CheckCircle2 className="w-5 h-5 text-success" />
-              <span className="font-medium text-success">Voice confirmation recorded</span>
+              <span className="font-medium text-success">{t.voice_recorded}</span>
             </div>
           ) : (
             <Button
@@ -335,12 +341,12 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
                       />
                     ))}
                   </div>
-                  Recording... Speak now
+                  {t.voice_recording}
                 </>
               ) : (
                 <>
                   <Mic className="w-5 h-5" />
-                  Tap to Record Voice
+                  {t.voice_tap_record}
                 </>
               )}
             </Button>
@@ -363,14 +369,14 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
         >
           <span className="flex items-center gap-3">
             <Shield className="w-6 h-6" />
-            Give My Verified Consent
+            {t.consent}
           </span>
         </Button>
       </div>
 
       {!allConsentsGiven && (
         <p className="text-center text-sm text-muted-foreground animate-in fade-in duration-300">
-          Please check all boxes above to proceed
+          {t.proceed_helper}
         </p>
       )}
     </div>

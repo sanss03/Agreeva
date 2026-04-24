@@ -12,8 +12,9 @@ import {
   Sparkles
 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useTranslations, useLocale } from "next-intl"
+import { useLocale } from "next-intl"
 import { usePathname, useRouter } from "@/i18n/routing"
+import { translations, getLanguageKey } from "@/lib/translations"
 
 interface HeroSectionProps {
   onGetStarted: () => void
@@ -21,8 +22,9 @@ interface HeroSectionProps {
 
 export function HeroSection({ onGetStarted }: HeroSectionProps) {
   const [isVisible, setIsVisible] = useState(false)
-  const t = useTranslations("Hero")
   const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
   const router = useRouter()
   const pathname = usePathname()
 
@@ -35,12 +37,12 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
   }
 
   const features = [
-    { icon: FileText, label: t("features.upload") },
-    { icon: Sparkles, label: t("features.ai") },
-    { icon: Languages, label: t("features.lang") },
-    { icon: BarChart3, label: t("features.visual") },
-    { icon: ShieldCheck, label: t("features.risk") },
-    { icon: CheckCircle2, label: t("features.consent") },
+    { icon: FileText, label: t.simplify },
+    { icon: Sparkles, label: t.hero_feature_ai },
+    { icon: Languages, label: t.hero_feature_multi },
+    { icon: BarChart3, label: t.hero_feature_visual },
+    { icon: ShieldCheck, label: t.hero_feature_risks },
+    { icon: CheckCircle2, label: t.consent },
   ]
 
   return (
@@ -53,10 +55,10 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
           }`}
         >
-          <span className="text-foreground">{t("title1")}</span>
+          <span className="text-foreground">{t.hero_title1}</span>
           <br />
           <span className="bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
-            {t("title2")}
+            {t.hero_title2}
           </span>
         </h1>
 
@@ -66,8 +68,8 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
             isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
           }`}
         >
-          {t("subtitle")}
-          <span className="text-foreground font-medium">{t("subtitleHighlight")}</span>
+          {t.hero_subtitle}
+          <span className="text-foreground font-medium">{t.hero_subtitleHighlight}</span>
         </p>
 
         {/* Language Support Badge */}
@@ -78,7 +80,7 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
         >
           <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-card border border-border">
             <Mic2 className="w-4 h-4 text-accent" />
-            <span className="text-sm text-muted-foreground">{t("availableIn")}</span>
+            <span className="text-sm text-muted-foreground">{t.hero_availableIn}</span>
             <div className="flex gap-2">
               <button 
                 onClick={() => changeLanguage('en')}
@@ -110,7 +112,7 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
             onClick={onGetStarted}
             className="px-8 py-6 text-lg bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-105"
           >
-            {t("uploadButton")}
+            {t.hero_uploadButton}
             <ArrowDown className="w-5 h-5 ml-2" />
           </Button>
           {/* <Button
@@ -152,15 +154,15 @@ export function HeroSection({ onGetStarted }: HeroSectionProps) {
         >
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">50K+</div>
-            <div className="text-sm text-muted-foreground">{t("stats.docs")}</div>
+            <div className="text-sm text-muted-foreground">{t.stats_docs}</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">99%</div>
-            <div className="text-sm text-muted-foreground">{t("stats.satisfaction")}</div>
+            <div className="text-sm text-muted-foreground">{t.stats_satisfaction}</div>
           </div>
           <div className="text-center">
             <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">3</div>
-            <div className="text-sm text-muted-foreground">{t("stats.languages")}</div>
+            <div className="text-sm text-muted-foreground">{t.stats_languages}</div>
           </div>
         </div>
       </div>

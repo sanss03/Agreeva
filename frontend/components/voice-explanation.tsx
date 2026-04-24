@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AgreementData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { SpeakButton } from '@/components/ui/speak-button'
+import { useLocale } from "next-intl"
+import { useTTS } from "@/hooks/useTTS"
+import { translations, getLanguageKey } from "@/lib/translations"
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
 
@@ -22,7 +25,10 @@ const languages = [
 ]
 
 export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
-  const [selectedLang, setSelectedLang] = useState("en")
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
+  const [selectedLang, setSelectedLang] = useState(locale)
   const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [hasListened, setHasListened] = useState(false)
@@ -62,12 +68,14 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
     }
   }, [])
 
+  const { speak, stop, isSpeaking: checkIsSpeaking } = useTTS()
+
   const togglePlayback = () => {
     const payloadText = data.simplifiedPoints.join('. ') + '. ' +
       data.risks.map((r: { description: string }) => r.description).join('. ');
 
     if (isPlaying) {
-      window.speechSynthesis.cancel();
+      stop();
       setIsPlaying(false);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       return;
@@ -76,26 +84,25 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
     if (progress >= 100) setProgress(0);
     setIsPlaying(true);
 
-    const utterance = new SpeechSynthesisUtterance(payloadText);
-    const targetLang = languages.find(l => l.code === selectedLang)?.voice || "en-IN";
-    utterance.lang = targetLang;
-    utterance.rate = 0.9;
+    speak(payloadText, selectedLang);
 
-    utterance.onend = () => {
-      setIsPlaying(false);
-      setProgress(100);
-      setHasListened(true);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-    };
-
-    window.speechSynthesis.speak(utterance);
+    // Monitor speech end
+    const monitorInterval = setInterval(() => {
+      if (!window.speechSynthesis.speaking) {
+        setIsPlaying(false);
+        setProgress(100);
+        setHasListened(true);
+        clearInterval(monitorInterval);
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      }
+    }, 500);
 
     // Simulate progress
-    const estDuration = payloadText.length * 80; // approximate duration
+    const estDuration = payloadText.length * 85; // approximate duration
     const start = Date.now();
 
     progressIntervalRef.current = setInterval(() => {
-      const p = Math.min(((Date.now() - start) / estDuration) * 100, 99);
+      const p = Math.min(((Date.now() - start) / estDuration) * 100, 99.5);
       setProgress(p);
     }, 200);
   }
@@ -149,13 +156,13 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
       <div className="text-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-sm text-accent font-medium">
           <Volume2 className="w-4 h-4" />
-          Voice Explanation
+          {t.voice_header}
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-          Listen to Your Explanation
+          {t.voice_title_main}
         </h2>
         <p className="text-muted-foreground">
-          Hear the agreement read aloud by our Voice Assistant
+          {t.voice_desc}
         </p>
       </div>
 
@@ -167,12 +174,12 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-primary flex items-center justify-center">
               <Globe className="w-5 h-5 text-white" />
             </div>
-            Select Voice Language
+            {t.voice_select_lang}
           </CardTitle>
         </CardHeader>
         <CardContent className="relative space-y-4">
           <div className="flex flex-col gap-4">
-            <p className="text-sm font-medium text-muted-foreground">Select Voice Language:</p>
+            <p className="text-sm font-medium text-muted-foreground">{t.voice_select_lang}:</p>
             <div className="flex gap-2">
               {[
                 { code: 'en', label: 'English' },
@@ -233,72 +240,75 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
       </Card>
 
       {/* Audio Player */}
-      <Card className="relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-        <CardContent className="relative p-6 md:p-8">
-          {/* Waveform Visualization */}
-          <div className="mb-6 overflow-hidden rounded-xl bg-muted/30 p-4">
-            <AudioWaveform />
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-              <span>Playing locally...</span>
-              <span>{Math.floor(progress)}%</span>
+      <div className="pt-8 text-center">
+        <h3 className="text-xl font-bold text-foreground mb-4">{t.voice_listen_in}</h3>
+        <Card className="relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+          <CardContent className="relative p-6 md:p-8">
+            {/* Waveform Visualization */}
+            <div className="mb-6 overflow-hidden rounded-xl bg-muted/30 p-4">
+              <AudioWaveform />
             </div>
-            <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-accent transition-all duration-100 rounded-full"
-                style={{ width: `${progress}%` }}
-              />
-              <div
-                className={cn(
-                  "absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg transition-all duration-100",
-                  !isPlaying && progress === 0 && "opacity-0"
-                )}
-                style={{ left: `calc(${progress}% - 8px)` }}
-              />
-            </div>
-          </div>
 
-          {/* Play Button */}
-          <div className="flex justify-center">
-            <button
-              onClick={togglePlayback}
-              className={cn(
-                "relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300",
-                "bg-gradient-to-br from-primary to-accent shadow-xl shadow-primary/30",
-                "hover:scale-105 hover:shadow-2xl hover:shadow-primary/40",
-                "active:scale-95"
-              )}
-            >
-              {isPlaying && (
-                <>
-                  <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
-                  <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse" />
-                </>
-              )}
-              <div className="relative">
-                {isPlaying ? (
-                  <Pause className="w-8 h-8 text-white" />
-                ) : (
-                  <Play className="w-8 h-8 text-white ml-1" />
-                )}
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+                <span>Playing locally...</span>
+                <span>{Math.floor(progress)}%</span>
               </div>
-            </button>
-          </div>
+              <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary to-accent transition-all duration-100 rounded-full"
+                  style={{ width: `${progress}%` }}
+                />
+                <div
+                  className={cn(
+                    "absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg transition-all duration-100",
+                    !isPlaying && progress === 0 && "opacity-0"
+                  )}
+                  style={{ left: `calc(${progress}% - 8px)` }}
+                />
+              </div>
+            </div>
 
-          {/* Helper Text */}
-          <p className="text-center text-sm text-muted-foreground mt-4">
-            {isPlaying
-              ? "Reading aloud..."
-              : progress >= 100
-              ? "Playback complete! You can replay or continue."
-              : "Tap to listen to the explanation aloud"}
-          </p>
-        </CardContent>
-      </Card>
+            {/* Play Button */}
+            <div className="flex justify-center">
+              <button
+                onClick={togglePlayback}
+                className={cn(
+                  "relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300",
+                  "bg-gradient-to-br from-primary to-accent shadow-xl shadow-primary/30",
+                  "hover:scale-105 hover:shadow-2xl hover:shadow-primary/40",
+                  "active:scale-95"
+                )}
+              >
+                {isPlaying && (
+                  <>
+                    <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+                    <div className="absolute inset-0 rounded-full bg-primary/20 animate-pulse" />
+                  </>
+                )}
+                <div className="relative">
+                  {isPlaying ? (
+                    <Pause className="w-8 h-8 text-white" />
+                  ) : (
+                    <Play className="w-8 h-8 text-white ml-1" />
+                  )}
+                </div>
+              </button>
+            </div>
+
+            {/* Helper Text */}
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              {isPlaying
+                ? t.voice_playing
+                : progress >= 100
+                ? t.voice_complete
+                : t.voice_tap}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Continue Button */}
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500">
@@ -309,7 +319,7 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
           className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
         >
           <span className="flex items-center gap-3">
-            View Visual Breakdown
+            {t.voice_proceed}
             <ArrowRight className="w-5 h-5" />
           </span>
         </Button>

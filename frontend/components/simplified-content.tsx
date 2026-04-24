@@ -9,6 +9,7 @@ import type { AgreementData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 import { SpeakButton } from '@/components/ui/speak-button'
+import { translations, getLanguageKey } from "@/lib/translations"
 
 interface SimplifiedContentProps {
   data: AgreementData
@@ -16,6 +17,9 @@ interface SimplifiedContentProps {
 }
 
 export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) {
+  const locale = useLocale()
+  const langKey = getLanguageKey(locale)
+  const t = translations[langKey]
   const [visiblePoints, setVisiblePoints] = useState<number[]>([])
   const [typingIndex, setTypingIndex] = useState(0)
   const [currentText, setCurrentText] = useState("")
@@ -43,7 +47,6 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
     }
   }, [typingIndex, data.simplifiedPoints])
 
-  const locale = useLocale()
   const allPointsVisible = visiblePoints.length === data.simplifiedPoints.length
 
   return (
@@ -52,13 +55,13 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
       <div className="text-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 border border-success/20 text-sm text-success font-medium">
           <CheckCircle2 className="w-4 h-4" />
-          AI Analysis Complete
+          {t.summary_header}
         </div>
         <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-          Here&apos;s What Your Agreement Says
+          {t.summary_title_main}
         </h2>
         <p className="text-muted-foreground">
-          We&apos;ve simplified the complex legal language for you
+          {t.summary_desc}
         </p>
       </div>
 
@@ -71,7 +74,7 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
                 <Lightbulb className="w-5 h-5 text-white" />
               </div>
-              Simple Summary
+              {t.summary_card_title}
             </div>
             <SpeakButton 
               text={data.simplifiedPoints.join('. ')} 
@@ -142,20 +145,23 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
         </CardContent>
       </Card>
 
-      {/* Continue Button */}
-      <div className="flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-        <Button
-          onClick={onComplete}
-          disabled={!allPointsVisible}
-          size="lg"
-          className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
-        >
-          <span className="flex items-center gap-3">
-            Listen in Your Language
-            <ArrowRight className="w-5 h-5" />
-          </span>
-        </Button>
-      </div>
+      {/* Key Financial Highlights - Visible immediately for at-a-glance value */}
+      {data.visuals && data.visuals.length > 0 && (
+        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 delay-300">
+          <h3 className="text-xl font-bold px-1">{t.summary_highlights}</h3>
+          <div className="grid grid-cols-2 gap-4">
+            {data.visuals.map((item, i) => (
+              <Card key={i} className="border-border/50 bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-300">
+                <CardContent className="p-4 flex flex-col justify-center gap-1">
+                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{item.label}</span>
+                  <span className="text-lg font-bold text-foreground">{item.value}</span>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
