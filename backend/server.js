@@ -16,11 +16,15 @@ const { loadAllPDFs } = require('./services/knowledgeBase');
 
 const app = express();
 
-// Configure CORS to allow all origins, headers, and methods
+// Configure CORS.
+// In production set FRONTEND_URL to the deployed frontend origin
+// (e.g. https://agreeva.onrender.com). Falls back to '*' so local
+// development keeps working without any extra configuration.
+const ALLOWED_ORIGIN = process.env.FRONTEND_URL || '*';
 app.use(cors({
-  origin: '*',
-  methods: '*',
-  allowedHeaders: '*'
+  origin: ALLOWED_ORIGIN,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 // Request Logger
