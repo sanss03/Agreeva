@@ -5,8 +5,8 @@ const router = express.Router();
 const consentStore = new Map();
 
 router.post('/session', (req, res) => {
-  const { user_name, document_summary } = req.body;
-  
+  const { user_name, document_summary, document_name } = req.body;
+
   if (!user_name) {
     return res.status(400).json({ error: "Missing user_name" });
   }
@@ -17,6 +17,7 @@ router.post('/session', (req, res) => {
   const sessionData = {
     sessionId,
     userName: user_name,
+    documentName: document_name || 'Untitled document',
     documentSummary: document_summary || '',
     status: 'pending',
     consentChecks: {
@@ -26,10 +27,12 @@ router.post('/session', (req, res) => {
     },
     voiceConfirmed: false,
     quizPassed: false,
+    quizScore: null,
+    quizTotal: null,
     auditLog: [{
       action: 'session_started',
       timestamp: now,
-      metadata: { user_name }
+      metadata: { user_name, document_name }
     }],
     createdAt: now,
     confirmedAt: null
@@ -48,11 +51,11 @@ router.post('/session/:id/confirm', (req, res) => {
     return res.status(404).json({ error: "Session not found" });
   }
 
-  const { consent_checks, voice_confirmed, quiz_passed } = req.body;
-  
-  if (!consent_checks || 
-      !consent_checks.readUnderstood || 
-      !consent_checks.financialCommitment || 
+  const { consent_checks, voice_confirmed, quiz_passed, quiz_score, quiz_total } = req.body;
+
+  if (!consent_checks ||
+      !consent_checks.readUnderstood ||
+      !consent_checks.financialCommitment ||
       !consent_checks.risksAcknowledged) {
     return res.status(400).json({ error: "All consent boxes must be checked" });
   }
@@ -62,6 +65,8 @@ router.post('/session/:id/confirm', (req, res) => {
   session.consentChecks = consent_checks;
   session.voiceConfirmed = !!voice_confirmed;
   session.quizPassed = !!quiz_passed;
+  session.quizScore = typeof quiz_score === 'number' ? quiz_score : null;
+  session.quizTotal = typeof quiz_total === 'number' ? quiz_total : null;
   session.status = 'confirmed';
   session.confirmedAt = now;
 
@@ -71,7 +76,11 @@ router.post('/session/:id/confirm', (req, res) => {
     metadata: {
       voice_confirmed: session.voiceConfirmed,
       quiz_passed: session.quizPassed,
-      consent_checks
+      quiz_score: session.quizScore,
+      quiz_total: session.quizTotal,
+      document_name: session.documentName,
+      consent_checks,
+      acknowledgement_type: 'application-level, not a legally verified digital signature'
     }
   });
 
@@ -81,7 +90,12 @@ router.post('/session/:id/confirm', (req, res) => {
     confirmed: true,
     session_id: id,
     consent_id: "SS-" + id.toUpperCase(),
-    timestamp: now
+    document_name: session.documentName,
+    quiz_passed: session.quizPassed,
+    quiz_score: session.quizScore,
+    quiz_total: session.quizTotal,
+    timestamp: now,
+    acknowledgement_notice: "This is an application-level acknowledgement of your understanding, not a legally verified digital signature or consent under any e-signature law."
   });
 });
 

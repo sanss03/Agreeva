@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Play, Pause, Volume2, ArrowRight, Globe } from "lucide-react"
+import { Play, Pause, Square, Volume2, ArrowRight, Globe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { AgreementData } from "@/lib/types"
@@ -10,8 +10,6 @@ import { SpeakButton } from '@/components/ui/speak-button'
 import { useLocale } from "next-intl"
 import { useTTS } from "@/hooks/useTTS"
 import { translations, getLanguageKey } from "@/lib/translations"
-
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000"
 
 interface VoiceExplanationProps {
   data: AgreementData
@@ -29,82 +27,74 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
   const langKey = getLanguageKey(locale)
   const t = translations[langKey]
   const [selectedLang, setSelectedLang] = useState(locale)
-  const [isPlaying, setIsPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [hasListened, setHasListened] = useState(false)
-  
-  const synthRef = useRef<SpeechSynthesis | null>(null)
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  const { speak, pause, resume, stop, status } = useTTS()
+  const isPlaying = status === 'playing'
+  const isPaused = status === 'paused'
+
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Stop any speech in progress when navigating away from this step.
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      synthRef.current = window.speechSynthesis
-      audioRef.current = new Audio()
-      audioRef.current.onended = () => {
-        setIsPlaying(false)
+    return () => {
+      stop()
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+    }
+  }, [stop])
+
+  const getPayloadText = () =>
+    data.simplifiedPoints.join('. ') + '. ' +
+    data.risks.map((r: { description: string }) => r.description).join('. ')
+
+  const handlePlayPause = () => {
+    if (isPlaying) {
+      pause()
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+      return
+    }
+
+    if (isPaused) {
+      resume()
+      startProgressTimer(true)
+      return
+    }
+
+    // Starting fresh (idle -> playing)
+    if (progress >= 100) setProgress(0)
+
+    const payloadText = getPayloadText()
+    speak(payloadText, selectedLang, {
+      onEnd: () => {
         setProgress(100)
         setHasListened(true)
         if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
-      }
-      audioRef.current.ontimeupdate = () => {
-        if (audioRef.current) {
-          const p = (audioRef.current.currentTime / audioRef.current.duration) * 100
-          setProgress(p)
-        }
-      }
-    }
-    return () => {
-      if (synthRef.current) {
-        synthRef.current.cancel()
-      }
-      if (audioRef.current) {
-        audioRef.current.pause()
-        URL.revokeObjectURL(audioRef.current.src)
-      }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current)
-      }
-    }
-  }, [])
+      },
+      onBoundary: (p) => setProgress(p),
+    })
+    startProgressTimer(false)
+  }
 
-  const { speak, stop, isSpeaking: checkIsSpeaking } = useTTS()
+  const handleStop = () => {
+    stop()
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+    setProgress(0)
+  }
 
-  const togglePlayback = () => {
-    const payloadText = data.simplifiedPoints.join('. ') + '. ' +
-      data.risks.map((r: { description: string }) => r.description).join('. ');
-
-    if (isPlaying) {
-      stop();
-      setIsPlaying(false);
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      return;
-    }
-
-    if (progress >= 100) setProgress(0);
-    setIsPlaying(true);
-
-    speak(payloadText, selectedLang);
-
-    // Monitor speech end
-    const monitorInterval = setInterval(() => {
-      if (!window.speechSynthesis.speaking) {
-        setIsPlaying(false);
-        setProgress(100);
-        setHasListened(true);
-        clearInterval(monitorInterval);
-        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      }
-    }, 500);
-
-    // Simulate progress
-    const estDuration = payloadText.length * 85; // approximate duration
-    const start = Date.now();
+  // Time-based estimate that runs alongside the more accurate onBoundary
+  // updates - Web Speech API boundary events aren't supported by every
+  // browser/voice, so this keeps the bar moving either way.
+  const startProgressTimer = (resuming: boolean) => {
+    if (progressIntervalRef.current) clearInterval(progressIntervalRef.current)
+    const payloadText = getPayloadText()
+    const estDuration = payloadText.length * 85
+    const start = Date.now() - (resuming ? (progress / 100) * estDuration : 0)
 
     progressIntervalRef.current = setInterval(() => {
-      const p = Math.min(((Date.now() - start) / estDuration) * 100, 99.5);
-      setProgress(p);
-    }, 200);
+      const p = Math.min(((Date.now() - start) / estDuration) * 100, 99.5)
+      setProgress((prev) => Math.max(prev, p))
+    }, 200)
   }
 
   const [waveformTick, setWaveformTick] = useState(0)
@@ -191,8 +181,8 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
                   onClick={() => setSelectedLang(lang.code)}
                   className={cn(
                     "px-4 py-2 rounded-full text-sm font-medium transition-all",
-                    selectedLang === lang.code 
-                      ? "bg-primary text-primary-foreground" 
+                    selectedLang === lang.code
+                      ? "bg-primary text-primary-foreground"
                       : "bg-muted hover:bg-muted/80"
                   )}
                 >
@@ -208,8 +198,7 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
                 key={lang.code}
                 onClick={() => {
                   setSelectedLang(lang.code)
-                  setProgress(0)
-                  if (isPlaying) togglePlayback() // stop if playing
+                  handleStop()
                 }}
                 className={cn(
                   "p-4 rounded-xl border-2 transition-all duration-300 text-center",
@@ -226,10 +215,10 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
               </button>
             ))}
           </div>
-          
+
           <div className="flex justify-center pt-4">
-            <SpeakButton 
-              text={data.simplifiedPoints.join('. ')} 
+            <SpeakButton
+              text={data.simplifiedPoints.join('. ')}
               language={selectedLang}
               size="md"
               className="bg-primary/10 hover:bg-primary/20"
@@ -253,7 +242,7 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
             {/* Progress Bar */}
             <div className="mb-6">
               <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
-                <span>Playing locally...</span>
+                <span>{isPaused ? t.voice_paused : t.voice_playing_label}</span>
                 <span>{Math.floor(progress)}%</span>
               </div>
               <div className="relative h-2 bg-muted rounded-full overflow-hidden">
@@ -271,10 +260,10 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
               </div>
             </div>
 
-            {/* Play Button */}
-            <div className="flex justify-center">
+            {/* Play/Pause + Stop Buttons */}
+            <div className="flex justify-center items-center gap-4">
               <button
-                onClick={togglePlayback}
+                onClick={handlePlayPause}
                 className={cn(
                   "relative w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300",
                   "bg-gradient-to-br from-primary to-accent shadow-xl shadow-primary/30",
@@ -296,12 +285,28 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
                   )}
                 </div>
               </button>
+
+              {(isPlaying || isPaused) && (
+                <button
+                  onClick={handleStop}
+                  title={t.voice_stop}
+                  className={cn(
+                    "w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300",
+                    "bg-muted hover:bg-muted/70 text-foreground",
+                    "hover:scale-105 active:scale-95"
+                  )}
+                >
+                  <Square className="w-5 h-5" />
+                </button>
+              )}
             </div>
 
             {/* Helper Text */}
             <p className="text-center text-sm text-muted-foreground mt-4">
               {isPlaying
                 ? t.voice_playing
+                : isPaused
+                ? t.voice_paused
                 : progress >= 100
                 ? t.voice_complete
                 : t.voice_tap}
@@ -316,7 +321,7 @@ export function VoiceExplanation({ data, onComplete }: VoiceExplanationProps) {
           onClick={onComplete}
           disabled={!hasListened && progress < 30}
           size="lg"
-          className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100"
+          className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
         >
           <span className="flex items-center gap-3">
             {t.voice_proceed}

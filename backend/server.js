@@ -1,6 +1,8 @@
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
 
 // Import routes
 const simplifyRoutes = require('./routes/simplify');
@@ -27,8 +29,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Configure JSON body parser
-app.use(express.json());
+// Configure JSON body parser. Raised from the 100kb default so a full
+// extracted document (sent as documentText to /api/chat or /api/simplify/text)
+// isn't rejected before it ever reaches a route handler.
+app.use(express.json({ limit: '5mb' }));
 
 // Mount routes
 app.use('/api/simplify', simplifyRoutes);
@@ -39,12 +43,30 @@ app.use('/api/upload', uploadRoutes);
 
 // Health check route
 app.get('/health', (req, res) => {
-  res.json({ status: "ok", timestamp: new Date() });
+  res.json({
+    status: "ok",
+    timestamp: new Date(),
+    groqConfigured: Boolean(process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim())
+  });
 });
 
 // Global error handler middleware
 app.use((err, req, res, next) => {
-  res.status(500).json({ error: err.message });
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'The request is too large. Please try a smaller document.' });
+  }
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'The file is too large. Please upload a smaller file.' });
+    }
+    return res.status(400).json({ error: 'Could not process the uploaded file. Please try a different file.' });
+  }
+  // Validation-style errors (e.g. the file-type check in simplify.js) set err.status themselves.
+  if (err.status) {
+    return res.status(err.status).json({ error: err.message });
+  }
+  console.error('[Server] Unhandled error:', err);
+  res.status(500).json({ error: err.message || 'Unexpected server error' });
 });
 
 // Listen on PORT from .env or default to 5000
@@ -52,5 +74,6 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`Server running on 0.0.0.0:${PORT}`);
+  console.log(`GROQ_API_KEY is configured: ${Boolean(process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim())}`);
   await loadAllPDFs();
 });

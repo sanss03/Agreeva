@@ -10,6 +10,8 @@ import { Chatbot } from "@/components/chatbot"
 import { EMICalculator } from "@/components/emi-calculator"
 import { AccessibilityPanel } from "@/components/accessibility-panel"
 import { VisualBreakdown } from "@/components/visual-breakdown"
+import { RiskAlerts } from "@/components/risk-alerts"
+import { UnderstandingCheck } from "@/components/understanding-check"
 
 import { EmergencyHelpline } from "@/components/emergency-helpline"
 import { ShareExport } from "@/components/share-export"
@@ -25,51 +27,10 @@ import { translations, getLanguageKey } from "@/lib/translations"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
-const sampleAgreementData: AgreementData = {
-  originalText: "",
-  simplifiedPoints: [
-    "You are borrowing ₹1,00,000 from ABC Finance",
-    "You will pay back ₹1,800 every month for 72 months (6 years)",
-    "Total money you will pay: ₹1,29,600",
-    "Extra money (interest): ₹29,600",
-    "If you miss a payment, you pay ₹500 extra as penalty",
-    "The bank can take your assets if you don't pay for 3 months",
-  ],
-  emi: 1800,
-  totalAmount: 129600,
-  principal: 100000,
-  interestRate: 18.5,
-  tenure: 72,
-  interestAmount: 29600,
-  riskLevel: "high",
-  risks: [
-    {
-      type: "High Interest Rate",
-      description: "18.5% interest is higher than most banks (10-12%)",
-      severity: "danger",
-    },
-    {
-      type: "Long Tenure",
-      description: "6 years is a long time to pay EMI",
-      severity: "warning",
-    },
-    {
-      type: "Late Payment Penalty",
-      description: "₹500 penalty for each late payment",
-      severity: "warning",
-    },
-    {
-      type: "Asset Seizure Risk",
-      description: "Your property can be taken if you miss 3 EMIs",
-      severity: "danger",
-    },
-  ],
-  visuals: [
-    { label: "Loan Amount", value: "₹1,00,000" },
-    { label: "Monthly EMI", value: "₹1,800/mo" },
-    { label: "Total Payable", value: "₹1,29,600" },
-    { label: "Duration", value: "6 years" },
-  ],
+interface QuizResult {
+  correctCount: number
+  total: number
+  passed: boolean
 }
 
 export default function Home() {
@@ -78,10 +39,16 @@ export default function Home() {
   const t = translations[langKey];
   
   const [agreementData, setAgreementData] = useState<AgreementData | null>(null)
+  const [documentName, setDocumentName] = useState<string | undefined>(undefined)
+  const [uploadVersion, setUploadVersion] = useState(0)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [analysisError, setAnalysisError] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState("hero")
   const [showVoiceExplanation, setShowVoiceExplanation] = useState(false)
   const [showVisualBreakdown, setShowVisualBreakdown] = useState(false)
+  const [showRiskAlerts, setShowRiskAlerts] = useState(false)
+  const [showUnderstandingCheck, setShowUnderstandingCheck] = useState(false)
+  const [quizResult, setQuizResult] = useState<QuizResult | null>(null)
   const [fontSize, setFontSize] = useState(100)
   const [highContrast, setHighContrast] = useState(false)
   const [reduceMotion, setReduceMotion] = useState(false)
@@ -93,12 +60,16 @@ export default function Home() {
   const consentRef = useRef<HTMLDivElement>(null)
   const calculatorRef = useRef<HTMLDivElement>(null)
   const voiceRef = useRef<HTMLDivElement>(null)
+  const risksRef = useRef<HTMLDivElement>(null)
+  const quizRef = useRef<HTMLDivElement>(null)
 
   const sections = [
     { id: "hero", label: t.nav_home, ref: heroRef },
     { id: "upload", label: t.nav_upload, ref: uploadRef },
     { id: "simplify", label: t.nav_simplify, ref: simplifyRef },
     { id: "voice", label: t.nav_voice, ref: voiceRef, hidden: !showVoiceExplanation },
+    { id: "risks", label: t.nav_risks, ref: risksRef, hidden: !showRiskAlerts },
+    { id: "quiz", label: t.nav_quiz, ref: quizRef, hidden: !showUnderstandingCheck },
     { id: "consent", label: t.nav_consent, ref: consentRef },
     { id: "calculator", label: t.nav_calculator, ref: calculatorRef },
   ]
@@ -150,24 +121,50 @@ export default function Home() {
     }, 120)
   }
 
-  const handleUpload = async (text: string) => {
+  const handleShowRiskAlerts = () => {
+    setShowRiskAlerts(true)
+    setTimeout(() => risksRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 120)
+  }
+
+  const handleShowUnderstandingCheck = () => {
+    setShowUnderstandingCheck(true)
+    setTimeout(() => quizRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 120)
+  }
+
+  const handleQuizComplete = (result: QuizResult) => {
+    setQuizResult(result)
+    setTimeout(() => scrollToSection("consent"), 120)
+  }
+
+  const handleUpload = async (text: string, fileName?: string) => {
     setIsProcessing(true)
+    setAnalysisError(null)
     try {
       const response = await fetch(`${API_BASE}/api/simplify/text`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, language: locale })
       })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Analysis failed")
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !data) {
+        throw new Error(data?.error || "Analysis failed")
       }
-      const data = await response.json()
+
+      // Reset the analysis journey so a re-upload never carries over a
+      // previous document's voice/risk/quiz progress or fabricated data.
       setAgreementData(data)
+      setDocumentName(fileName || t.upload_pasted_document_label)
+      setUploadVersion((v) => v + 1)
+      setShowVoiceExplanation(false)
+      setShowVisualBreakdown(false)
+      setShowRiskAlerts(false)
+      setShowUnderstandingCheck(false)
+      setQuizResult(null)
+
       setTimeout(() => scrollToSection("simplify"), 500)
     } catch (error) {
       console.error("Upload error:", error)
-      setAgreementData({ ...sampleAgreementData, originalText: text })
+      setAnalysisError(error instanceof Error ? error.message : t.analysis_error_generic)
     } finally {
       setIsProcessing(false)
     }
@@ -274,17 +271,49 @@ export default function Home() {
                       subtitle={t.voice_subtitle}
                     />
                     <div className="max-w-4xl mx-auto mt-8">
-                      <VoiceExplanation 
-                        data={agreementData} 
-                        onComplete={() => {
-                          scrollToSection("consent")
-                        }} 
+                      <VoiceExplanation
+                        data={agreementData}
+                        onComplete={handleShowRiskAlerts}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {showRiskAlerts && (
+                  <div ref={risksRef} id="risks" className="pt-16">
+                    <SectionHeader
+                      number={4}
+                      title={t.risk_title_main}
+                      subtitle={t.risk_desc}
+                    />
+                    <div className="max-w-4xl mx-auto mt-8">
+                      <RiskAlerts
+                        data={agreementData}
+                        onComplete={handleShowUnderstandingCheck}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {showUnderstandingCheck && (
+                  <div ref={quizRef} id="quiz" className="pt-16">
+                    <SectionHeader
+                      number={5}
+                      title={t.check_header}
+                      subtitle={t.check_desc}
+                    />
+                    <div className="max-w-4xl mx-auto mt-8">
+                      <UnderstandingCheck
+                        data={agreementData}
+                        onComplete={handleQuizComplete}
                       />
                     </div>
                   </div>
                 )}
               </>
-            ) : (
+            ) : analysisError ? (
+                <ErrorPlaceholder message={analysisError} />
+              ) : (
                 <LockedPlaceholder message={t.placeholder_upload} />
               )}
             </div>
@@ -304,7 +333,7 @@ export default function Home() {
         >
           <div className="container mx-auto px-4">
             <SectionHeader
-              number={4}
+              number={6}
               title={t.consent_title}
               subtitle={t.consent_subtitle}
             />
@@ -312,7 +341,10 @@ export default function Home() {
               {agreementData ? (
                 <ConsentScreen
                   data={agreementData}
-                  quizPassed={true}
+                  quizPassed={quizResult?.passed ?? false}
+                  quizScore={quizResult?.correctCount}
+                  quizTotal={quizResult?.total}
+                  documentName={documentName}
                 />
               ) : (
                 <LockedPlaceholder message={t.placeholder_consent} />
@@ -351,7 +383,11 @@ export default function Home() {
       </div>
 
       {/* Floating Tools */}
-      <Chatbot documentContext={agreementData?.originalText} />
+      <Chatbot
+        key={uploadVersion}
+        documentContext={agreementData?.originalText}
+        analysis={agreementData ?? undefined}
+      />
       <AccessibilityPanel
         fontSize={fontSize}
         highContrast={highContrast}
@@ -426,6 +462,30 @@ function LockedPlaceholder({ message }: { message: string }) {
         </svg>
       </div>
       <p className="text-muted-foreground text-center max-w-md">{message}</p>
+    </div>
+  )
+}
+
+// Shown when AI analysis genuinely fails - never silently replaced with fabricated data
+function ErrorPlaceholder({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 px-6 rounded-2xl border border-dashed border-destructive/40 bg-destructive/5 backdrop-blur-sm">
+      <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+        <svg
+          className="w-8 h-8 text-destructive"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+          />
+        </svg>
+      </div>
+      <p className="text-destructive text-center max-w-md font-medium">{message}</p>
     </div>
   )
 }

@@ -10,9 +10,11 @@ import { useLocale } from "next-intl"
 import { translations, getLanguageKey } from "@/lib/translations"
 
 interface UploadSectionProps {
-  onUpload: (text: string) => void
+  onUpload: (text: string, fileName?: string) => void
   isProcessing: boolean
 }
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
 const sampleAgreement = `LOAN AGREEMENT
 
@@ -48,29 +50,37 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
   const langKey = getLanguageKey(locale)
   const t = translations[langKey]
   const [text, setText] = useState("")
+  const [fileName, setFileName] = useState<string | undefined>(undefined)
   const [isDragging, setIsDragging] = useState(false)
   const [isExtracting, setIsExtracting] = useState(false)
+  const [extractError, setExtractError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileProcess = async (file: File) => {
+    if (isExtracting) return // guard against duplicate/overlapping extraction requests
     setIsExtracting(true)
+    setExtractError(null)
     try {
       const formData = new FormData()
       formData.append('file', file)
-      
-      const response = await fetch("http://localhost:5000/api/simplify/extract", {
+
+      const response = await fetch(`${API_BASE}/api/simplify/extract`, {
         method: "POST",
         body: formData
       })
-      
-      if (!response.ok) throw new Error("Failed to extract text from file")
-      
-      const data = await response.json()
+
+      const data = await response.json().catch(() => null)
+
+      if (!response.ok || !data?.text) {
+        throw new Error(data?.error || "Failed to extract text from file")
+      }
+
       setText(data.text)
+      setFileName(file.name)
     } catch (error) {
       console.error("Extraction error:", error)
-      alert("Could not extract text from this file. Please ensure it is a valid PDF or Word Document.")
+      setExtractError(t.upload_extract_error)
     } finally {
       setIsExtracting(false)
     }
@@ -96,6 +106,8 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
 
   const loadSample = () => {
     setText(sampleAgreement)
+    setFileName(undefined)
+    setExtractError(null)
   }
 
   return (
@@ -208,11 +220,17 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
           <div className="space-y-3">
             <textarea
               value={text}
-              onChange={(e) => setText(e.target.value)}
+              onChange={(e) => {
+                setText(e.target.value)
+                if (!e.target.value.trim()) setFileName(undefined)
+              }}
               disabled={isExtracting}
               placeholder={t.upload_placeholder}
               className="w-full h-48 md:h-56 p-4 bg-muted/30 border border-border/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 text-foreground placeholder:text-muted-foreground transition-all duration-300 disabled:opacity-50"
             />
+            {extractError && (
+              <p className="text-sm text-destructive">{extractError}</p>
+            )}
             <div className="flex items-center justify-between">
               <button
                 onClick={loadSample}
@@ -230,7 +248,7 @@ export function UploadSection({ onUpload, isProcessing }: UploadSectionProps) {
 
           {/* Submit Button */}
           <Button
-            onClick={() => onUpload(text)}
+            onClick={() => onUpload(text, fileName)}
             disabled={!text.trim() || isProcessing || isExtracting}
             size="lg"
             className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:scale-100 disabled:shadow-none"

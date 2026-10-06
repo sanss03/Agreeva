@@ -4,6 +4,7 @@ const multer = require('multer');
 const pdfParseLib = require('pdf-parse');
 const pdfParse = typeof pdfParseLib === 'function' ? pdfParseLib : pdfParseLib.default;
 const { setUserContext, getUserContext, clearUserContext } = require('../services/userContext');
+const { normalizeExtractedText } = require('../utils/textNormalize');
 
 // Use memory storage – no files saved to disk
 const upload = multer({
@@ -38,7 +39,7 @@ router.post('/', upload.single('file'), async (req, res) => {
       return res.status(422).json({ error: 'PDF has no readable text' });
     }
 
-    const cleanText = extractedText.replace(/\s+/g, ' ').trim();
+    const cleanText = normalizeExtractedText(extractedText);
 
     // Replace any previous context with the new one
     setUserContext(req.file.originalname, cleanText);

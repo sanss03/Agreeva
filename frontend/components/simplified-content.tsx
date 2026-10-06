@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { CheckCircle2, ArrowRight, Lightbulb } from "lucide-react"
+import { CheckCircle2, ArrowRight, Lightbulb, ScrollText } from "lucide-react"
 import { useLocale } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -160,6 +160,34 @@ export function SimplifiedContent({ data, onComplete }: SimplifiedContentProps) 
             ))}
           </div>
         </div>
+      )}
+
+      {/* Important Clauses - only shown when the AI actually found distinct clauses in the document */}
+      {data.keyClauses && data.keyClauses.length > 0 && (
+        <Card className="relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-7 duration-700 delay-400">
+          <div className="absolute inset-0 bg-gradient-to-br from-accent/5 via-transparent to-primary/5" />
+          <CardHeader className="relative pb-4">
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-accent to-primary flex items-center justify-center">
+                <ScrollText className="w-5 h-5 text-white" />
+              </div>
+              {t.summary_clauses_title}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative space-y-3">
+            {data.keyClauses.map((clause, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 p-3 rounded-xl bg-muted/30 border border-border/30"
+              >
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-accent/20 text-accent flex items-center justify-center text-xs font-bold mt-0.5">
+                  {index + 1}
+                </div>
+                <p className="text-foreground text-sm leading-relaxed">{clause}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       )}
 
     </div>

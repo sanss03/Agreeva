@@ -5,18 +5,24 @@ import { CheckCircle2, Shield, Mic, MicOff, FileCheck, Sparkles } from "lucide-r
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Spinner } from "@/components/ui/spinner"
 import type { AgreementData } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 import { useLocale } from "next-intl"
 import { translations, getLanguageKey } from "@/lib/translations"
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
+
 interface ConsentScreenProps {
   data: AgreementData
   quizPassed: boolean
+  quizScore?: number
+  quizTotal?: number
+  documentName?: string
 }
 
-export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
+export function ConsentScreen({ data, quizPassed, quizScore, quizTotal, documentName }: ConsentScreenProps) {
   const locale = useLocale()
   const langKey = getLanguageKey(locale)
   const t = translations[langKey]
@@ -27,6 +33,8 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
   const [voiceConfirmed, setVoiceConfirmed] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(null)
 
   const allConsentsGiven = consent1 && consent2 && consent3
 
@@ -41,17 +49,21 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
+    setSubmitError(null)
     try {
-      const sessionRes = await fetch("http://localhost:5000/api/consent/session", {
+      const sessionRes = await fetch(`${API_BASE}/api/consent/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           user_name: "User",
+          document_name: documentName || "Untitled document",
           document_summary: data.simplifiedPoints.join(". ")
         })
       })
+      if (!sessionRes.ok) throw new Error("Could not start the consent session")
       const { session_id } = await sessionRes.json()
-      await fetch(`http://localhost:5000/api/consent/session/${session_id}/confirm`, {
+
+      const confirmRes = await fetch(`${API_BASE}/api/consent/session/${session_id}/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -61,15 +73,24 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
             risksAcknowledged: consent3
           },
           voice_confirmed: voiceConfirmed,
-          quiz_passed: quizPassed
+          quiz_passed: quizPassed,
+          quiz_score: quizScore,
+          quiz_total: quizTotal
         })
       })
+      if (!confirmRes.ok) {
+        const errBody = await confirmRes.json().catch(() => null)
+        throw new Error(errBody?.error || "Could not record your confirmation")
+      }
+      const confirmData = await confirmRes.json()
+      setConfirmedAt(confirmData.timestamp || new Date().toISOString())
+      setIsSubmitted(true)
     } catch (e) {
       console.error("Consent error:", e)
+      setSubmitError(t.consent_submit_error)
     } finally {
       setIsSubmitting(false)
     }
-    setIsSubmitted(true)
   }
 
   const formatCurrency = (amount: number) => {
@@ -115,7 +136,7 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
               <div className="text-right">
                 <p className="text-success font-bold text-sm">{t.consent_verified_badge}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {t.verified_on}: {new Date().toLocaleString()}
+                  {t.verified_on}: {new Date(confirmedAt || Date.now()).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -125,10 +146,9 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
         <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
           <Card className="border-border/50 bg-card/50">
             <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">{t.verified_by}</p>
-              <p className="font-semibold text-foreground flex items-center justify-center gap-2">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Agreeva AI
+              <p className="text-sm text-muted-foreground">{t.consent_document_label}</p>
+              <p className="font-semibold text-foreground truncate" title={documentName}>
+                {documentName || "Untitled document"}
               </p>
             </CardContent>
           </Card>
@@ -136,7 +156,7 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
             <CardContent className="p-4 text-center">
               <p className="text-sm text-muted-foreground">{t.date_time}</p>
               <p className="font-semibold text-foreground">
-                {new Date().toLocaleDateString("en-IN", {
+                {new Date(confirmedAt || Date.now()).toLocaleDateString("en-IN", {
                   day: "numeric",
                   month: "short",
                   year: "numeric",
@@ -144,7 +164,30 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
               </p>
             </CardContent>
           </Card>
+          <Card className="border-border/50 bg-card/50">
+            <CardContent className="p-4 text-center">
+              <p className="text-sm text-muted-foreground">{t.consent_quiz_score_label}</p>
+              <p className="font-semibold text-foreground">
+                {typeof quizScore === "number" && typeof quizTotal === "number" && quizTotal > 0
+                  ? `${quizScore} / ${quizTotal}`
+                  : "-"}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="border-border/50 bg-card/50">
+            <CardContent className="p-4 text-center">
+              <p className="text-sm text-muted-foreground">{t.verified_by}</p>
+              <p className="font-semibold text-foreground flex items-center justify-center gap-2">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Agreeva AI
+              </p>
+            </CardContent>
+          </Card>
         </div>
+
+        <p className="text-center text-xs text-muted-foreground max-w-md mx-auto">
+          {t.consent_disclaimer}
+        </p>
       </div>
     )
   }
@@ -354,6 +397,11 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
         </CardContent>
       </Card>
 
+      {/* Disclaimer */}
+      <p className="text-center text-xs text-muted-foreground max-w-lg mx-auto">
+        {t.consent_disclaimer}
+      </p>
+
       {/* Submit Button */}
       <div className="flex justify-center animate-in fade-in slide-in-from-bottom-10 duration-700 delay-500">
         <Button
@@ -367,12 +415,25 @@ export function ConsentScreen({ data, quizPassed }: ConsentScreenProps) {
               : "bg-muted text-muted-foreground cursor-not-allowed"
           )}
         >
-          <span className="flex items-center gap-3">
-            <Shield className="w-6 h-6" />
-            {t.consent}
-          </span>
+          {isSubmitting ? (
+            <span className="flex items-center gap-3">
+              <Spinner className="w-5 h-5" />
+              {t.consent_submitting}
+            </span>
+          ) : (
+            <span className="flex items-center gap-3">
+              <Shield className="w-6 h-6" />
+              {t.consent}
+            </span>
+          )}
         </Button>
       </div>
+
+      {submitError && (
+        <p className="text-center text-sm text-destructive animate-in fade-in duration-300">
+          {submitError}
+        </p>
+      )}
 
       {!allConsentsGiven && (
         <p className="text-center text-sm text-muted-foreground animate-in fade-in duration-300">

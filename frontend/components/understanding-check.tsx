@@ -11,52 +11,18 @@ import { cn } from "@/lib/utils"
 
 interface UnderstandingCheckProps {
   data: AgreementData
-  onComplete: (answers: boolean[]) => void
-}
-
-interface Question {
-  id: number
-  question: string
-  options: { text: string; isCorrect: boolean }[]
-  explanation: string
+  onComplete: (result: { correctCount: number; total: number; passed: boolean }) => void
 }
 
 export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps) {
   const locale = useLocale()
   const langKey = getLanguageKey(locale)
   const t = translations[langKey]
-  const questions: Question[] = [
-    {
-      id: 1,
-      question: "How much will you pay every month?",
-      options: [
-        { text: `₹${data.emi.toLocaleString("en-IN")}`, isCorrect: true },
-        { text: `₹${(data.emi + 500).toLocaleString("en-IN")}`, isCorrect: false },
-        { text: `₹${Math.round(data.emi * 1.5).toLocaleString("en-IN")}`, isCorrect: false },
-      ],
-      explanation: `Your monthly EMI is ₹${data.emi.toLocaleString("en-IN")}. This amount stays the same every month.`,
-    },
-    {
-      id: 2,
-      question: "For how many years will you pay EMI?",
-      options: [
-        { text: `${data.tenure / 12 - 2} years`, isCorrect: false },
-        { text: `${data.tenure / 12} years`, isCorrect: true },
-        { text: `${data.tenure / 12 + 2} years`, isCorrect: false },
-      ],
-      explanation: `You will pay EMI for ${data.tenure} months, which is ${data.tenure / 12} years.`,
-    },
-    {
-      id: 3,
-      question: "How much extra money (interest) will you pay?",
-      options: [
-        { text: `₹${Math.round(data.interestAmount * 0.5).toLocaleString("en-IN")}`, isCorrect: false },
-        { text: `₹${data.interestAmount.toLocaleString("en-IN")}`, isCorrect: true },
-        { text: `₹${Math.round(data.interestAmount * 1.5).toLocaleString("en-IN")}`, isCorrect: false },
-      ],
-      explanation: `You borrowed ₹${data.principal.toLocaleString("en-IN")} but will pay back ₹${data.totalAmount.toLocaleString("en-IN")}. The extra ₹${data.interestAmount.toLocaleString("en-IN")} is the interest.`,
-    },
-  ]
+
+  // Questions come from the AI analysis, grounded only in facts present in
+  // the uploaded document (see backend/routes/simplify.js). If the document
+  // didn't yield enough concrete facts, this can be empty - handled below.
+  const questions = data.questions ?? []
 
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [selectedAnswers, setSelectedAnswers] = useState<(number | null)[]>(
@@ -64,6 +30,37 @@ export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps
   )
   const [showResult, setShowResult] = useState(false)
   const [showExplanation, setShowExplanation] = useState(false)
+
+  if (questions.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        <div className="text-center space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-muted border border-border text-sm text-muted-foreground font-medium">
+            <HelpCircle className="w-4 h-4" />
+            {t.check_header}
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+            {t.check_unavailable_title}
+          </h2>
+          <p className="text-muted-foreground">
+            {t.check_unavailable_desc}
+          </p>
+        </div>
+        <div className="flex justify-center">
+          <Button
+            onClick={() => onComplete({ correctCount: 0, total: 0, passed: true })}
+            size="lg"
+            className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25"
+          >
+            <span className="flex items-center gap-3">
+              {t.check_view_risks}
+              <ArrowRight className="w-5 h-5" />
+            </span>
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   const handleAnswer = (optionIndex: number) => {
     const newAnswers = [...selectedAnswers]
@@ -123,7 +120,7 @@ export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps
         <Card className="relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm animate-in fade-in slide-in-from-bottom-6 duration-700 delay-150">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
           <CardContent className="relative p-6 md:p-8">
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-4 flex-wrap">
               {questions.map((_, index) => {
                 const answer = selectedAnswers[index]
                 const correct = answer !== null && questions[index].options[answer].isCorrect
@@ -147,7 +144,11 @@ export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps
 
         <div className="flex justify-center">
           <Button
-            onClick={() => onComplete(selectedAnswers.map((a, i) => a !== null && questions[i].options[a].isCorrect))}
+            onClick={() => onComplete({
+              correctCount,
+              total: questions.length,
+              passed: correctCount === questions.length,
+            })}
             size="lg"
             className="h-14 px-8 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-all duration-300 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]"
           >
@@ -271,7 +272,7 @@ export function UnderstandingCheck({ data, onComplete }: UnderstandingCheckProps
               </div>
               <div>
                 <p className={cn("font-semibold mb-1", isCorrect ? "text-success" : "text-warning")}>
-                  {isCorrect ? "Correct!" : "Not quite right"}
+                  {isCorrect ? t.check_correct : t.check_incorrect}
                 </p>
                 <p className="text-foreground">{currentQ.explanation}</p>
               </div>

@@ -209,7 +209,7 @@ export function RiskAlerts({ data, onComplete }: RiskAlertsProps) {
                     </div>
                     <div className="flex items-center justify-between gap-4">
                       <p className="text-foreground">{risk.description}</p>
-                      <SpeakButton text={`${risk.type}. ${risk.description}`} language="en" />
+                      <SpeakButton text={`${risk.type}. ${risk.description}`} language={locale} />
                     </div>
                   </div>
                 </div>

@@ -23,6 +23,7 @@ import { SpeakButton } from "@/components/ui/speak-button"
 import { useTTS } from "@/hooks/useTTS"
 import { useLocale } from "next-intl"
 import { translations, getLanguageKey } from "@/lib/translations"
+import type { AgreementData } from "@/lib/types"
 
 interface Message {
   id: string
@@ -31,39 +32,71 @@ interface Message {
   timestamp: Date
 }
 
-const quickQuestions = [
-  { icon: Calculator, text: "What is my EMI?" },
-  { icon: FileText, text: "Explain this agreement" },
-  { icon: AlertTriangle, text: "What are the risks?" },
-  { icon: HelpCircle, text: "What is interest rate?" },
-]
+const NO_DOCUMENT_MESSAGE: Record<string, string> = {
+  en: "Please upload or paste a document first so I can answer questions about it.",
+  hi: "कृपया पहले एक दस्तावेज़ अपलोड करें या पेस्ट करें ताकि मैं उसके बारे में प्रश्नों का उत्तर दे सकूं।",
+  mr: "कृपया आधी एखादे कागदपत्र अपलोड करा किंवा पेस्ट करा जेणेकरून मी त्याबद्दलच्या प्रश्नांची उत्तरे देऊ शकेन.",
+}
+
+const GENERIC_ERROR_MESSAGE: Record<string, string> = {
+  en: "Sorry, I couldn't answer that question right now. Please try again.",
+  hi: "क्षमा करें, मैं अभी इस प्रश्न का उत्तर नहीं दे सका। कृपया पुनः प्रयास करें।",
+  mr: "क्षमस्व, मी आत्ता या प्रश्नाचे उत्तर देऊ शकलो नाही. कृपया पुन्हा प्रयत्न करा.",
+}
+
+const LOCALE_TO_LANGUAGE: Record<string, string> = {
+  en: "english",
+  hi: "hindi",
+  mr: "marathi",
+}
+
+const MAX_HISTORY_MESSAGES = 10
+
+// Locale-keyed initial greeting shown when the chatbot first opens
+const INITIAL_GREETING: Record<string, string> = {
+  en: "Hello! I'm your financial assistant. I can help you understand your loan agreement, explain terms simply, and answer any questions. How can I help you today?",
+  hi: "नमस्ते! मैं आपका वित्तीय सहायक हूँ। मैं आपके ऋण समझौते को सरल भाषा में समझने और आपके सवालों के जवाब देने में आपकी मदद कर सकता हूँ। आज मैं आपकी कैसे सहायता कर सकता हूँ?",
+  mr: "नमस्कार! मी तुमचा आर्थिक सहाय्यक आहे. मी तुमचा कर्ज करार सोप्या भाषेत समजून घेण्यास आणि तुमच्या प्रश्नांची उत्तरे देण्यास मदत करू शकतो. आज मी तुमची कशी मदत करू?",
+}
+
+// Locale-keyed quick-question suggestion texts (strings only — no React components in state)
+const QUICK_QUESTIONS: Record<string, string[]> = {
+  en: ["What is my EMI?", "Explain this agreement", "What are the risks?", "What is interest rate?"],
+  hi: ["मेरा EMI कितना है?", "इस समझौते को सरल भाषा में समझाएँ", "इसमें क्या जोखिम हैं?", "ब्याज दर क्या है?"],
+  mr: ["माझा EMI किती आहे?", "हा करार सोप्या भाषेत समजावून सांगा", "यात कोणते धोके आहेत?", "व्याज दर किती आहे?"],
+}
+
+// Icon lookup by position — never stored in state, only used at render time
+const SUGGESTION_ICONS = [Calculator, FileText, AlertTriangle, HelpCircle]
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"
 
-const defaultMessage = "I can help you understand your financial agreement better. You can ask me about:\n\n• EMI calculations\n• Interest rates explained simply\n• Risk factors in your agreement\n• Any terms you don't understand\n\nHow can I assist you today?"
-
 interface ChatbotProps {
   documentContext?: string
+  analysis?: AgreementData
 }
 
-export function Chatbot({ documentContext }: ChatbotProps) {
+export function Chatbot({ documentContext, analysis }: ChatbotProps) {
   const { speak } = useTTS()
   const locale = useLocale()
   const langKey = getLanguageKey(locale)
   const t = translations[langKey]
+  const localeKey = locale in INITIAL_GREETING ? locale : "en"
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       role: "assistant",
-      content: "Hello! I'm your financial assistant. I can help you understand your loan agreement, explain terms simply, and answer any questions. How can I help you today?",
+      content: INITIAL_GREETING[localeKey],
       timestamp: new Date(),
     },
   ])
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const [isListening, setIsListening] = useState(false)
-  const [suggestions, setSuggestions] = useState(quickQuestions)
+  const [suggestions, setSuggestions] = useState<string[]>(
+    QUICK_QUESTIONS[localeKey] ?? QUICK_QUESTIONS.en
+  )
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -90,6 +123,19 @@ export function Chatbot({ documentContext }: ChatbotProps) {
     return "english";
   };
 
+  // Always use the app's selected locale as the primary language for the reply.
+  // Exception: if the app locale is English but the user typed in Devanagari script,
+  // try to detect whether they mean Hindi or Marathi so the reply matches their input.
+  const resolveLanguage = (text: string) => {
+    const appLanguage = LOCALE_TO_LANGUAGE[locale] || "english"
+    if (appLanguage !== "english") return appLanguage  // hi → "hindi", mr → "marathi"
+    const hasDevanagari = /[ऀ-ॿ]/.test(text)
+    if (hasDevanagari) return detectLanguage(text)
+    return "english"
+  };
+
+  const hasDocument = Boolean((documentContext && documentContext.trim()) || analysis)
+
 
 
   const startListening = () => {
@@ -115,8 +161,10 @@ export function Chatbot({ documentContext }: ChatbotProps) {
   };
 
   const handleSend = async (text?: string) => {
-    const messageText = text || input
-    if (!messageText.trim()) return
+    if (isTyping) return // prevent duplicate/overlapping sends
+
+    const messageText = (text || input).trim()
+    if (!messageText) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -127,38 +175,59 @@ export function Chatbot({ documentContext }: ChatbotProps) {
 
     setMessages((prev) => [...prev, userMessage])
     setInput("")
+
+    if (!hasDocument) {
+      const notice: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: NO_DOCUMENT_MESSAGE[locale] || NO_DOCUMENT_MESSAGE.en,
+        timestamp: new Date(),
+      }
+      setMessages((prev) => [...prev, notice])
+      return
+    }
+
     setIsTyping(true)
 
+    const language = resolveLanguage(messageText)
     let reply = ""
+
     try {
-      let sessionId = typeof window !== "undefined" ? localStorage.getItem("chat_session_id") : null
-      
+      const conversationHistory = messages
+        .slice(-MAX_HISTORY_MESSAGES)
+        .map((m) => ({ role: m.role, content: m.content }))
+
       const res = await fetch(`${API_BASE}/api/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           question: messageText,
-          context: documentContext,
-          language: detectLanguage(messageText),
+          documentText: documentContext,
+          analysis,
+          conversationHistory,
+          language,
         })
       })
 
-      if (res.ok) {
-        const data = await res.json()
+      const data = await res.json().catch(() => null)
+
+      if (res.ok && data?.answer) {
         reply = data.answer
-        if (data.suggestions) {
-          setSuggestions(data.suggestions.map((s: string) => ({ 
-            icon: HelpCircle, 
-            text: s 
-          })))
+        if (Array.isArray(data.suggestions) && data.suggestions.length) {
+          // Store only strings — component refs must never enter state
+          setSuggestions(data.suggestions.map((s: unknown) => String(s)))
         }
       } else {
-        reply = "I'm having trouble connecting to the AI. Please try again later."
+        console.error("Chat API error:", data?.error || res.statusText)
+        reply = GENERIC_ERROR_MESSAGE[locale] || GENERIC_ERROR_MESSAGE.en
       }
     } catch (err) {
       console.error("Chat error:", err)
-      reply = "I'm sorry, I'm having trouble generating a response. Please try again."
+      reply = GENERIC_ERROR_MESSAGE[locale] || GENERIC_ERROR_MESSAGE.en
+    } finally {
+      setIsTyping(false)
     }
+
     const assistantMessage: Message = {
       id: (Date.now() + 1).toString(),
       role: "assistant",
@@ -166,9 +235,8 @@ export function Chatbot({ documentContext }: ChatbotProps) {
       timestamp: new Date(),
     }
 
-    setIsTyping(false)
     setMessages((prev) => [...prev, assistantMessage])
-    
+
     // Auto-play the voice response
     speak(reply, detectLanguage(reply))
   }
@@ -338,20 +406,23 @@ export function Chatbot({ documentContext }: ChatbotProps) {
             {/* Quick Questions */}
             <div className="px-4 pb-2">
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {suggestions.map((q, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleSend(q.text)}
-                    className={cn(
-                      "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
-                      "bg-muted/50 hover:bg-muted text-xs whitespace-nowrap",
-                      "transition-all duration-200 hover:scale-105"
-                    )}
-                  >
-                    <q.icon className="h-3 w-3 text-primary" />
-                    {q.text}
-                  </button>
-                ))}
+                {suggestions.map((text, i) => {
+                  const Icon = SUGGESTION_ICONS[i % SUGGESTION_ICONS.length]
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleSend(text)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3 py-1.5 rounded-full",
+                        "bg-muted/50 hover:bg-muted text-xs whitespace-nowrap",
+                        "transition-all duration-200 hover:scale-105"
+                      )}
+                    >
+                      <Icon className="h-3 w-3 text-primary" />
+                      {text}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 
